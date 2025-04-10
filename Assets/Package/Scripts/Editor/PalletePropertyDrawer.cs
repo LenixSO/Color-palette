@@ -41,6 +41,7 @@ public class PalletePropertyDrawer : Editor
 
         var list = new ListField<IntegerField, int>();
         root.Add(list);
+        list.RegisterCallback<ChangeEvent<int>>((evt)=>Debug.Log("test"));
         list.AddElement(4);
         list.AddElement(2);
         list.AddElement(6);

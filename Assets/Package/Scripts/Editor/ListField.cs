@@ -10,8 +10,11 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private Button plusButton;
     private Button minusButton;
 
-    private int count => elementList.Count;
     private List<ListElement<T, TValue>> elementList = new();
+    private IntegerField countField;
+    private List<ListElement<T, TValue>> selectedElements = new();
+
+    public int count => elementList.Count;
 
     #region Preset
     //Style parameters
@@ -54,11 +57,12 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         foldout.text = label;
         foldout.style.flexGrow = 1;
 
-        IntegerField count = new("");
-        count.style.width = 50;
-        count.style.height = 18;
-        count.style.position = Position.Absolute;
-        count.style.alignSelf = Align.FlexEnd;
+        countField = new("");
+        countField.style.width = 50;
+        countField.style.height = 18;
+        countField.style.position = Position.Absolute;
+        countField.style.alignSelf = Align.FlexEnd;
+        countField.RegisterCallback<NavigationSubmitEvent>(ElementCountChanged);
 
         content = new();
         content.style.backgroundColor = bgColor;
@@ -76,7 +80,9 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         buttonsWindow.style.alignSelf = Align.FlexEnd;
 
         plusButton = ListButtons(EditorGUIUtility.IconContent("Toolbar Plus").image);
+        plusButton.clicked += AddNewElement;
         minusButton = ListButtons(EditorGUIUtility.IconContent("Toolbar Minus").image);
+        minusButton.clicked += RemoveElement;
 
         buttonsWindow.Add(plusButton);
         buttonsWindow.Add(minusButton);
@@ -84,17 +90,58 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         foldout.Add(content);
         foldout.Add(buttonsWindow);
         header.Add(foldout);
-        header.Add(count);
+        header.Add(countField);
 
         Add(header);
     }
 
+    private void ElementCountChanged(NavigationSubmitEvent evt)
+    {
+        int difference = countField.value - count;
+
+        Debug.Log($"cound changed by {difference}");
+    }
+
+    private void AddNewElement()
+    {
+        AddElement();
+    }
+
+    private void RemoveElement()
+    {
+        if(selectedElements.Count <= 0)
+        {
+            if(elementList.Count > 0)
+            {
+                var element = elementList[^1];
+                elementList.Remove(element);
+                content.Remove(element);
+                UpdateListData();
+            }
+            return;
+        }
+
+        //remove selected elements
+    }
+
     public void AddElement(TValue value = default)
     {
-        ListElement<T, TValue> element = new($"Element {elementList.Count}");
+        ListElement<T, TValue> element = new($"Element {count}");
         element.field.SetValueWithoutNotify(value);
         content.Add(element);
         elementList.Add(element);
+        UpdateListData();
+    }
+
+    private void UpdateListData()
+    {
+        countField.SetValueWithoutNotify(count);
+        //call change event
+        Debug.Log("call event");
+        using (ChangeEvent<int> change = ChangeEvent<int>.GetPooled())
+        {
+            SendEvent(change);
+        }
     }
 }
 
