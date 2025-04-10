@@ -31,12 +31,15 @@ public class PalletePropertyDrawer : Editor
         root.name = "root";
 
         ObjectField testField = new("Test");
-        testField.objectType = typeof(Object);
+        testField.objectType = typeof(DefaultAsset);
         testField.RegisterCallback<ChangeEvent<Object>>((data) =>
         {
-            Debug.Log(data.newValue.GetType());
+            Debug.Log(AssetDatabase.GetAssetPath(data.newValue));
         });
+        
         root.Add(testField);
+
+        root.Add(new ListField<IntegerField>());
         
         Button read = new();
         read.text = "ReadProject";
