@@ -2,43 +2,58 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
+using PointerType = UnityEngine.UIElements.PointerType;
 
 public static class VisualElementUtilities
 {
-    public static void SetBorder(this VisualElement element, float thickness, Color? color = null, float radius = 0)
+    #region GemeralVisualElement
+    public static VisualElement GetRoot(this VisualElement visualElement)
     {
-        element.style.borderTopWidth = thickness;
-        element.style.borderBottomWidth = thickness;
-        element.style.borderLeftWidth = thickness;
-        element.style.borderRightWidth = thickness;
-
-        element.style.borderTopLeftRadius = radius;
-        element.style.borderTopRightRadius = radius;
-        element.style.borderBottomLeftRadius = radius;
-        element.style.borderBottomRightRadius = radius;
-
-        Color borderColor = color ?? Color.white;
-        element.style.borderTopColor = borderColor;
-        element.style.borderBottomColor = borderColor;
-        element.style.borderLeftColor = borderColor;
-        element.style.borderRightColor = borderColor;
+        VisualElement root = visualElement;
+        while (root.parent != null) root = root.parent;
+        return root;
     }
 
-    public static void SetMargin(this VisualElement element, float thickness)
+    public static void SetPadding(this VisualElement visualElement, float borderWidth)
     {
-        element.style.marginTop = thickness;
-        element.style.marginBottom = thickness;
-        element.style.marginLeft = thickness;
-        element.style.marginRight = thickness;
+        visualElement.style.paddingTop = borderWidth;
+        visualElement.style.paddingBottom = borderWidth;
+        visualElement.style.paddingLeft = borderWidth;
+        visualElement.style.paddingRight = borderWidth;
     }
-    public static void SetPadding(this VisualElement element, float thickness)
+
+    public static void SetMargin(this VisualElement visualElement, float borderWidth)
     {
-        element.style.paddingTop = thickness;
-        element.style.paddingBottom = thickness;
-        element.style.paddingLeft = thickness;
-        element.style.paddingRight = thickness;
+        visualElement.style.marginTop = borderWidth;
+        visualElement.style.marginBottom = borderWidth;
+        visualElement.style.marginLeft = borderWidth;
+        visualElement.style.marginRight = borderWidth;
     }
-    public static void SetClickEffect(this VisualElement element, Color defaultColor, Color? hoverColor = null, Color? clickColor = null, 
+
+    public static void SetBorder(this VisualElement visualElement, float borderWidth, float curvature = 0, Color? borderColor = null)
+    {
+        //size
+        visualElement.style.borderTopWidth = borderWidth;
+        visualElement.style.borderBottomWidth = borderWidth;
+        visualElement.style.borderLeftWidth = borderWidth;
+        visualElement.style.borderRightWidth = borderWidth;
+
+        //color
+        Color color = borderColor ?? visualElement.style.backgroundColor.value;
+        visualElement.style.borderTopColor = color;
+        visualElement.style.borderBottomColor = color;
+        visualElement.style.borderLeftColor = color;
+        visualElement.style.borderRightColor = color;
+
+        //curvature
+        visualElement.style.borderTopLeftRadius = curvature;
+        visualElement.style.borderTopRightRadius = curvature;
+        visualElement.style.borderBottomLeftRadius = curvature;
+        visualElement.style.borderBottomRightRadius = curvature;
+    }
+    #endregion
+
+    public static void SetClickEffect(this VisualElement element, Color defaultColor, Color? hoverColor = null, Color? clickColor = null,
         TrickleDown trickleDownClick = TrickleDown.NoTrickleDown)
     {
         Color normalColor = defaultColor;
@@ -66,7 +81,7 @@ public static class VisualElementUtilities
             element.CaptureMouse();
             element.style.backgroundColor = downColor;
             //Debug.Log("mouse down");
-        },trickleDownClick);
+        }, trickleDownClick);
         element.RegisterCallback<MouseUpEvent>((evt) =>
         {
             element.ReleaseMouse();
@@ -75,4 +90,87 @@ public static class VisualElementUtilities
             //Debug.Log($"mouse up: {element.ContainsPoint(evt.localMousePosition)}");
         });
     }
+
+    #region ScrollView
+    public static void EnableMouseDrag(this ScrollView scrollView)
+    {
+        VisualElement root = scrollView.GetRoot();
+        bool dragging = false;
+        Vector2 maxMovement = Vector2.zero;
+        scrollView.RegisterCallback<PointerDownEvent>((evt) =>
+        {
+            dragging = true;
+            maxMovement = scrollView.contentContainer.contentRect.size - scrollView.contentRect.size;
+        });
+        root.RegisterCallback<PointerMoveEvent>((evt) =>
+        {
+            if (!dragging || evt.pointerType != PointerType.mouse) return;
+            VisualElement content = scrollView.contentContainer;
+
+            //scroll mode
+            Vector3 delta = evt.deltaPosition;
+            if (scrollView.mode == ScrollViewMode.Horizontal) delta.y = 0f;
+            else if (scrollView.mode == ScrollViewMode.Vertical) delta.x = 0f;
+
+            //clamp drag
+            Vector3 position = content.transform.position + delta;
+            position.x = Mathf.Clamp(position.x, 0, -maxMovement.x);
+            position.y = Mathf.Clamp(position.y, -maxMovement.y, 0);
+
+            content.transform.position = position;
+        });
+        root.RegisterCallback<PointerUpEvent>((evt) =>
+        {
+            dragging = false;
+        });
+    }
+    public static void IndicateMoreContent(this ScrollView scrollView, float transparency)
+    {
+        VisualElement root = scrollView.GetRoot();
+        bool dragging = false;
+        Vector2 maxMovement = Vector2.zero;
+        scrollView.style.borderTopWidth = 10;
+        scrollView.style.borderBottomWidth = 10;
+        scrollView.style.borderBottomColor = ColorExtension.TransparentBlack(transparency);
+        scrollView.RegisterCallback<PointerDownEvent>((evt) =>
+        {
+            dragging = true;
+            maxMovement = scrollView.contentContainer.contentRect.size - scrollView.contentRect.size;
+        });
+        root.RegisterCallback<PointerMoveEvent>((evt) =>
+        {
+            if (!dragging || evt.pointerType != PointerType.mouse) return;
+
+            //scroll mode
+            Vector3 delta = evt.deltaPosition;
+            if (scrollView.mode == ScrollViewMode.Horizontal) delta.y = 0f;
+            else if (scrollView.mode == ScrollViewMode.Vertical) delta.x = 0f;
+
+            if (scrollView.contentContainer.transform.position.y < 0)
+            {
+                //top shade
+                scrollView.style.borderTopColor = ColorExtension.TransparentBlack(transparency);
+            }
+            else
+            {
+                scrollView.style.borderTopColor = ColorExtension.TransparentBlack(0);
+            }
+
+            if (scrollView.contentContainer.transform.position.y > -maxMovement.y)
+            {
+                //top shade
+                scrollView.style.borderBottomColor = ColorExtension.TransparentBlack(transparency);
+            }
+            else
+            {
+                scrollView.style.borderBottomColor = ColorExtension.TransparentBlack(0);
+            }
+
+        });
+        root.RegisterCallback<PointerUpEvent>((evt) =>
+        {
+            dragging = false;
+        });
+    }
+    #endregion
 }

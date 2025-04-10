@@ -63,7 +63,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         content = new();
         content.style.backgroundColor = bgColor;
         content.style.paddingBottom = elementSpacing;
-        content.SetBorder(borderSize, borderColor, borderRadius);
+        content.SetBorder(borderSize, borderRadius, borderColor);
 
         VisualElement buttonsWindow = new();
         buttonsWindow.style.flexDirection = FlexDirection.Row;
@@ -72,7 +72,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         buttonsWindow.style.width = 50;
         buttonsWindow.style.height = 22;
         buttonsWindow.style.backgroundColor = bgColor;
-        buttonsWindow.SetBorder(borderSize, borderColor, borderRadius);
+        buttonsWindow.SetBorder(borderSize, borderRadius, borderColor);
         buttonsWindow.style.alignSelf = Align.FlexEnd;
 
         plusButton = ListButtons(EditorGUIUtility.IconContent("Toolbar Plus").image);
