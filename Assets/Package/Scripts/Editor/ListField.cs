@@ -10,8 +10,8 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private Button plusButton;
     private Button minusButton;
 
-    private int count;
-    private List<T> elementList = new();
+    private int count => elementList.Count;
+    private List<ListElement<T, TValue>> elementList = new();
 
     #region Preset
     //Style parameters
@@ -87,22 +87,31 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         header.Add(count);
 
         Add(header);
+    }
 
-        //Test
-        content.Add(new ListElement<T, TValue>("testElement"));
-        content.Add(new ListElement<T, TValue>("testElement"));
-        content.Add(new ListElement<T, TValue>("testElement"));
+    public void AddElement(TValue value = default)
+    {
+        ListElement<T, TValue> element = new($"Element {elementList.Count}");
+        element.field.SetValueWithoutNotify(value);
+        content.Add(element);
+        elementList.Add(element);
     }
 }
 
 public class ListElement<T, TValue> : VisualElement where T : BaseField<TValue>
 {
-    private T element;
+    public T field {  get; private set; }
 
-    public ListElement(string label = "ListElement")
+    public TValue Value
+    {
+        get => field.value;
+        set => field.value = value;
+    }
+
+    public ListElement(string label = "ListElement", TValue value = default)
     {
         style.flexDirection = FlexDirection.Row;
-        style.paddingTop = ListField<T, TValue>.elementSpacing;
+        style.marginTop = ListField<T, TValue>.elementSpacing;
         style.paddingLeft = 5f;
         style.paddingRight = 5f;
         this.SetClickEffect(ListField<T, TValue>.bgColor, ListField<T, TValue>.lighterColor, ListField<T, TValue>.darkerColor);
@@ -112,11 +121,12 @@ public class ListElement<T, TValue> : VisualElement where T : BaseField<TValue>
         Image img = new();
         img.image = EditorGUIUtility.IconContent("align_vertically_bottom").image;
 
-        element = Activator.CreateInstance<T>();
-        element.label = label;
-        element.style.flexGrow = 1;
+        field = Activator.CreateInstance<T>();
+        field.label = label;
+        field.style.flexGrow = 1;
+        field.SetValueWithoutNotify(value);
 
         Add(img);
-        Add(element);
+        Add(field);
     }
 }

@@ -39,7 +39,11 @@ public class PalletePropertyDrawer : Editor
         
         root.Add(testField);
 
-        root.Add(new ListField<IntegerField,int>());
+        var list = new ListField<IntegerField, int>();
+        root.Add(list);
+        list.AddElement(4);
+        list.AddElement(2);
+        list.AddElement(6);
         
         Button read = new();
         read.text = "ReadProject";
