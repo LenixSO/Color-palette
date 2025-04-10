@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
+using UnityEditor.UIElements;
 using Button = UnityEngine.UIElements.Button;
 using PopupWindow = UnityEngine.UIElements.PopupWindow;
 
@@ -39,7 +39,7 @@ public class PalletePropertyDrawer : Editor
         
         root.Add(testField);
 
-        root.Add(new ListField<IntegerField>());
+        root.Add(new ListField<IntegerField,int>());
         
         Button read = new();
         read.text = "ReadProject";
