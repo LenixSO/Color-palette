@@ -16,6 +16,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private List<ListElement<T, TValue>> selectedElements = new();
 
     public int count => elementList.Count;
+    public new T this[int id] => elementList[id].field;
 
     #region Preset
     //Style parameters

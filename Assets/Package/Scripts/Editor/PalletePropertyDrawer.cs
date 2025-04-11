@@ -47,7 +47,7 @@ public class PalletePropertyDrawer : Editor
         folders.RegisterCallback<ChangeEvent<CollectionChange>>(UpdatePrefabFolders);
         root.Add(folders);
         
-        root.Add(new ListField<ColorField, Color>());
+        root.Add(new ListField<ColorReferenceField, Color>());
 
         colorsRoot = new Foldout();
         colorsRoot.text = "Colors";
@@ -229,6 +229,7 @@ public class PalletePropertyDrawer : Editor
 
         ObjectField field = new ObjectField();
         //field.style.flexBasis = 200;
+        field.SetEnabled(false);
         field.style.left = spacing;
         field.value = reference[id];
         field.objectType = typeof(T);
@@ -308,7 +309,6 @@ public class PalletePropertyDrawer : Editor
         root.Add(Popup);
         FocusElement(Popup, true);
     }
-
     private void ClosePopup()
     {
         root.Remove(Popup);
