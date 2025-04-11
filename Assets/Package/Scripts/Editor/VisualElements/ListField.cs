@@ -6,6 +6,7 @@ using System;
 
 public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 {
+    private Label emptyList;
     private VisualElement content;
     private Button plusButton;
     private Button minusButton;
@@ -23,7 +24,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     public static readonly Color lighterColor = ColorExtension.GrayShade(.2f);
     public static readonly Color darkerColor = ColorExtension.GrayShade(.4f);
     public static readonly Color borderColor = ColorExtension.GrayShade(.1f);
-    private static readonly float borderSize = 1.4f;
+    private static readonly float borderSize = 1.1f;
     private static readonly float borderRadius = 3f;
     private static readonly float buttonPaddingHorizontal = 4f;
     private static readonly float buttonPaddingVertical = 2f;
@@ -70,13 +71,13 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         content.SetBorder(borderSize, borderRadius, borderColor);
 
         VisualElement buttonsWindow = new();
+        buttonsWindow.SetBorder(borderSize, borderRadius, borderColor);
         buttonsWindow.style.flexDirection = FlexDirection.Row;
         buttonsWindow.style.borderTopWidth = 0;
         buttonsWindow.style.marginRight = 15;
-        buttonsWindow.style.width = 50;
+        buttonsWindow.style.width = 55;
         buttonsWindow.style.height = 22;
         buttonsWindow.style.backgroundColor = bgColor;
-        buttonsWindow.SetBorder(borderSize, borderRadius, borderColor);
         buttonsWindow.style.alignSelf = Align.FlexEnd;
 
         plusButton = ListButtons(EditorGUIUtility.IconContent("Toolbar Plus").image);
@@ -87,6 +88,11 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         buttonsWindow.Add(plusButton);
         buttonsWindow.Add(minusButton);
 
+        emptyList = new("List is empty");
+        emptyList.SetMargin(5);
+        emptyList.style.marginBottom = 2;
+        content.Add(emptyList);
+        
         foldout.Add(content);
         foldout.Add(buttonsWindow);
         header.Add(foldout);
@@ -114,6 +120,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             if(elementList.Count > 0)
             {
                 var element = elementList[^1];
+                element.UnregisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
                 elementList.Remove(element);
                 content.Remove(element);
                 UpdateListData();
@@ -128,20 +135,31 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     {
         ListElement<T, TValue> element = new($"Element {count}");
         element.field.SetValueWithoutNotify(value);
+        element.RegisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
         content.Add(element);
         elementList.Add(element);
+        UpdateListData();
+    }
+
+    private void ElementValueChanged(ChangeEvent<TValue> evt)
+    {
         UpdateListData();
     }
 
     private void UpdateListData()
     {
         countField.SetValueWithoutNotify(count);
+        emptyList.style.display = count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
         //call change event
-        Debug.Log("call event");
-        using (ChangeEvent<int> change = ChangeEvent<int>.GetPooled())
-        {
-            SendEvent(change);
-        }
+        var evt = ChangeEvent<CollectionChange>.GetPooled();
+        evt.target = this;
+        SendEvent(evt);
+    }
+
+    public TValue ValueAt(int id)
+    {
+        if (id < 0 || id >= count) return default;
+        return elementList[id].Value;
     }
 }
 
@@ -176,4 +194,9 @@ public class ListElement<T, TValue> : VisualElement where T : BaseField<TValue>
         Add(img);
         Add(field);
     }
+}
+
+public class CollectionChange
+{
+    
 }

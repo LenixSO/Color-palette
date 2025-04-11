@@ -5,4 +5,5 @@ using UnityEngine;
 public class TestScript : MonoBehaviour
 {
     public List<int> test;
+    public List<Color> test2;
 }

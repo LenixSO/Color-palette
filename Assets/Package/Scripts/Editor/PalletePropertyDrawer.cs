@@ -15,6 +15,7 @@ public class PalletePropertyDrawer : Editor
     private Foldout colorsRoot;
     private Foldout referencesRoot;
     private PopupWindow Popup;
+    private ListField<ObjectField, Object> folders;
 
     public override VisualElement CreateInspectorGUI()
     {
@@ -29,27 +30,24 @@ public class PalletePropertyDrawer : Editor
         */
         root = new();
         root.name = "root";
-
-        ObjectField testField = new("Test");
-        testField.objectType = typeof(DefaultAsset);
-        testField.RegisterCallback<ChangeEvent<Object>>((data) =>
-        {
-            Debug.Log(AssetDatabase.GetAssetPath(data.newValue));
-        });
-        
-        root.Add(testField);
-
-        var list = new ListField<IntegerField, int>();
-        root.Add(list);
-        list.RegisterCallback<ChangeEvent<int>>((evt)=>Debug.Log("test"));
-        list.AddElement(4);
-        list.AddElement(2);
-        list.AddElement(6);
+        if (palette == null) return root;
         
         Button read = new();
-        read.text = "ReadProject";
+        read.text = "Read Folders";
         read.clicked += ReadProjectElements;
         root.Add(read);
+
+        folders = new("Prefab Folders");
+        for (int i = 0; i < palette.searchFolders.Length; i++)
+        {
+            //Debug.Log(AssetDatabase.LoadAssetAtPath<DefaultAsset>(folder) == null);
+            string folder = palette.searchFolders[i];
+            folders.AddElement(AssetDatabase.LoadAssetAtPath<DefaultAsset>(folder));
+        }
+        folders.RegisterCallback<ChangeEvent<CollectionChange>>(UpdatePrefabFolders);
+        root.Add(folders);
+        
+        root.Add(new ListField<ColorField, Color>());
 
         colorsRoot = new Foldout();
         colorsRoot.text = "Colors";
@@ -72,6 +70,19 @@ public class PalletePropertyDrawer : Editor
         return root;
     }
 
+    private void UpdatePrefabFolders(ChangeEvent<CollectionChange> evt)
+    {
+        Debug.Log("update");
+        string[] searchFolders = new string[folders.count];
+        for (int i = 0; i < searchFolders.Length; i++)
+        {
+            string path = AssetDatabase.GetAssetPath(folders.ValueAt(i));
+            searchFolders[i] = path;
+        }
+
+        palette.searchFolders = searchFolders;
+    }
+    
     private void ReadProjectElements()
     {
         palette.Colors.Clear();
