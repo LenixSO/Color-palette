@@ -152,7 +152,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         countField.SetValueWithoutNotify(count);
         emptyList.style.display = count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
         //call change event
-        var evt = ChangeEvent<CollectionChange>.GetPooled();
+        var evt = ChangeEvent<CollectionChange<TValue>>.GetPooled();
         evt.target = this;
         SendEvent(evt);
     }
@@ -197,7 +197,7 @@ public class ListElement<T, TValue> : VisualElement where T : BaseField<TValue>
     }
 }
 
-public class CollectionChange
+public class CollectionChange<TValue>
 {
     
 }
