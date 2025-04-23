@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.rtl.markdownrenderer": {
+      "version": "https://github.com/UnityGuillaume/MarkdownRenderer.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "6494f74c527c9143b9c4a94e6a42ebd8b3a3d550"
+    },
     "com.unity.2d.animation": {
       "version": "9.2.0",
       "depth": 1,
