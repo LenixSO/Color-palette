@@ -173,4 +173,33 @@ public static class VisualElementUtilities
         });
     }
     #endregion
+
+    #region Animations
+    public static void MoveTowards(this VisualElement element, Vector3 goal, float animationDuration)
+    {
+        Vector3 startPosition = element.transform.position;
+        float step = .02f;
+        float scaledStep = (step / animationDuration);
+
+        float time = 0;
+        var animation = element.schedule.Execute(() => MoveTowards(goal));
+        animation.Every((long)(step * 1000));
+        animation.Until(() => time > 1 + scaledStep);
+
+        void MoveTowards(Vector3 position)
+        {
+            element.transform.position = Vector3.Lerp(startPosition, position, time);
+            time += scaledStep;
+        }
+    }
+    #endregion
+
+    #region Info
+
+    //transitions
+    //https://discussions.unity.com/t/announcing-uss-transition/863464
+    //https://discussions.unity.com/t/quick-transition-tutorial/863467/3
+    //element.style.transitionProperty = new List<StylePropertyName>() { new ("background-color") };
+    //element.style.transitionDuration = new List<TimeValue> { new (1.0f, TimeUnit.Second) };
+    #endregion
 }

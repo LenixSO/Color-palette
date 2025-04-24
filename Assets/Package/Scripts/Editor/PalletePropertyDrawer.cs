@@ -44,7 +44,7 @@ public class PalletePropertyDrawer : Editor
             string folder = palette.searchFolders[i];
             folders.AddElement(AssetDatabase.LoadAssetAtPath<DefaultAsset>(folder));
         }
-        folders.RegisterCallback<ChangeEvent<CollectionChange<Object>>>(UpdatePrefabFolders);
+        folders.RegisterCallback<CollectionChange<Object>>(UpdatePrefabFolders);
         root.Add(folders);
         
         root.Add(new ListField<ColorReferenceField, Color>());
@@ -70,9 +70,9 @@ public class PalletePropertyDrawer : Editor
         return root;
     }
 
-    private void UpdatePrefabFolders(ChangeEvent<CollectionChange<Object>> evt)
+    private void UpdatePrefabFolders(CollectionChange<Object> evt)
     {
-        Debug.Log("update");
+        //Debug.Log("update");
         string[] searchFolders = new string[folders.count];
         for (int i = 0; i < searchFolders.Length; i++)
         {

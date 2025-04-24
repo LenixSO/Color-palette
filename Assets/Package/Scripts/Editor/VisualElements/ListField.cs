@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine.UIElements;
 using UnityEditor;
 using System;
+using System.Xml.Linq;
 
 public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 {
@@ -20,6 +21,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
     #region Preset
     //Style parameters
+    private readonly float elementSize = 25;
     public static readonly float elementSpacing = 2f;
     public static readonly Color bgColor = ColorExtension.GrayShade(.26f);
     public static readonly Color lighterColor = ColorExtension.GrayShade(.2f);
@@ -48,6 +50,45 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         return button;
     }
 
+    private void SetupDragDrop(ListElement<T, TValue> element)
+    {
+        bool dragging = false;
+        float totalArea = (element.localBound.height * (elementList.Count - 1)) + (element.localBound.height / 2f);
+        Vector3 initialPosition = Vector3.zero;
+        element.RegisterCallback<PointerDownEvent>((evt) =>
+        {
+            totalArea = (element.localBound.height * (elementList.Count - 1)) + (element.localBound.height / 2f);
+            element.BringToFront();
+            initialPosition = element.transform.position;
+            dragging = true;
+        });
+
+        element.RegisterCallback<PointerMoveEvent>((evt) =>
+        {
+            if (!dragging) return;
+
+            //figure out the bound area
+            float offset = elementList.IndexOf(element)/(float)(elementList.Count-1);
+            float finalPosition = evt.deltaPosition.y + element.transform.position.y;
+            finalPosition = Mathf.Clamp(finalPosition, 0, totalArea);
+
+            //set position
+            Vector2 position = element.transform.position;
+            position.y = finalPosition;
+            element.transform.position = position;
+
+            //move other elements out of the way
+
+        });
+
+        element.RegisterCallback<PointerUpEvent>((evt) =>
+        {
+            dragging = false;
+
+            element.MoveTowards(initialPosition, .05f);
+        });
+    }
+
     #endregion
 
     public ListField(string label = "ListField")
@@ -70,6 +111,13 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         content.style.backgroundColor = bgColor;
         content.style.paddingBottom = elementSpacing;
         content.SetBorder(borderSize, borderRadius, borderColor);
+        //resizeElementsAtStart
+        content.RegisterCallback<GeometryChangedEvent>(InitContentSize);
+        void InitContentSize(GeometryChangedEvent evt)
+        {
+            ResizeContent();
+            content.UnregisterCallback<GeometryChangedEvent>(InitContentSize);
+        }
 
         VisualElement buttonsWindow = new();
         buttonsWindow.SetBorder(borderSize, borderRadius, borderColor);
@@ -100,6 +148,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         header.Add(countField);
 
         Add(header);
+        ResizeContent();
     }
 
     private void ElementCountChanged(NavigationSubmitEvent evt)
@@ -125,6 +174,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 elementList.Remove(element);
                 content.Remove(element);
                 UpdateListData();
+                ResizeContent();
             }
             return;
         }
@@ -135,11 +185,30 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     public void AddElement(TValue value = default)
     {
         ListElement<T, TValue> element = new($"Element {count}");
+        element.style.position = Position.Absolute;
+        element.style.height = elementSize - elementSpacing;
         element.field.SetValueWithoutNotify(value);
         element.RegisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
-        content.Add(element);
         elementList.Add(element);
+        content.Add(element);
+        ResizeContent();
+        SetupDragDrop(element);
         UpdateListData();
+    }
+    private void ResizeContent()
+    {
+        //resize conten to fit all elements
+        int elements = Mathf.Max(count, 1);
+        float height = (elementSize * elements) + elementSpacing * 4;
+        content.style.height = height;
+
+        //position elements
+        for (int i = 0; i < count; i++)
+        {
+            ListElement<T, TValue> element = elementList[count - i - 1];
+            element.transform.position = Vector3.up * ((height - (elementSize) * i) - (elementSize + elementSpacing * 3));
+            element.style.width = content.worldBound.width;
+        }
     }
 
     private void ElementValueChanged(ChangeEvent<TValue> evt)
@@ -152,8 +221,11 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         countField.SetValueWithoutNotify(count);
         emptyList.style.display = count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
         //call change event
-        var evt = ChangeEvent<CollectionChange<TValue>>.GetPooled();
+        var evt = CollectionChange<TValue>.GetPooled();
         evt.target = this;
+
+        //add changes
+
         SendEvent(evt);
     }
 
@@ -197,7 +269,9 @@ public class ListElement<T, TValue> : VisualElement where T : BaseField<TValue>
     }
 }
 
-public class CollectionChange<TValue>
+public class CollectionChange<TValue> : EventBase<CollectionChange<TValue>>
 {
-    
+    Dictionary<int, TValue> changedValues = new();
+    Dictionary<int, TValue> addedValues = new();
+    Dictionary<int, TValue> removedValues = new();
 }

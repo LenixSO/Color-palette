@@ -414,7 +414,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42fd1a56e6b70ac49aee7fa20e81777c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  test: 
+  test: 0000000000000000
   test2:
   - {r: 0, g: 0, b: 0, a: 0}
 --- !u!4 &663102522
