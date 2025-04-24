@@ -12,6 +12,8 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private Button plusButton;
     private Button minusButton;
 
+    private float contentSize => (elementSize * Mathf.Max(count, 1)) + elementSpacing * 4;
+
     private List<ListElement<T, TValue>> elementList = new();
     private IntegerField countField;
     private List<ListElement<T, TValue>> selectedElements = new();
@@ -55,37 +57,93 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         bool dragging = false;
         float totalArea = (element.localBound.height * (elementList.Count - 1)) + (element.localBound.height / 2f);
         Vector3 initialPosition = Vector3.zero;
+
+        int originIndex = 0;
+        int currentIndex = 0;
+        int indexOffset = 0;//if already shifted up or down
+        float shiftOffset = .75f;
+        float shiftAnimationTime = .05f;
+
         element.RegisterCallback<PointerDownEvent>((evt) =>
         {
+            //setup values
             totalArea = (element.localBound.height * (elementList.Count - 1)) + (element.localBound.height / 2f);
-            element.BringToFront();
             initialPosition = element.transform.position;
+            indexOffset = 0;
+            originIndex = elementList.IndexOf(element);
+            currentIndex = originIndex;
             dragging = true;
+
+            //alter element
+            element.BringToFront();
+            element.CapturePointer(evt.pointerId);
+            for (int i = 0; i < elementList.Count; i++)
+            {
+                elementList[i].pickingMode = PickingMode.Ignore;
+            }
         });
 
         element.RegisterCallback<PointerMoveEvent>((evt) =>
         {
             if (!dragging) return;
 
-            //figure out the bound area
-            float offset = elementList.IndexOf(element)/(float)(elementList.Count-1);
-            float finalPosition = evt.deltaPosition.y + element.transform.position.y;
-            finalPosition = Mathf.Clamp(finalPosition, 0, totalArea);
-
             //set position
+            float finalYPosition = Mathf.Clamp(evt.deltaPosition.y + element.transform.position.y, 0, totalArea);
             Vector2 position = element.transform.position;
-            position.y = finalPosition;
+            position.y = finalYPosition;
             element.transform.position = position;
 
-            //move other elements out of the way
+            //mshiftAnimationTimeove other elements out of the way
+            Vector3 indexPosition = ElementPosition(currentIndex);
+            float distanceFromOrigin = position.y - indexPosition.y;
+            if (distanceFromOrigin > elementSize * shiftOffset && currentIndex < count - 1)
+            {
+                //element below is 1 index above this
+                //Debug.Log("Past the element below");
 
+                ShiftElements(1);
+            }
+            else if (distanceFromOrigin < -(elementSize * shiftOffset) && currentIndex > 0)
+            {
+                //element above is 1 index below this
+                //Debug.Log("Past the element above");
+
+                ShiftElements(-1);
+            }
+
+            void ShiftElements(int offset)
+            {
+                //move element
+                int index = currentIndex + offset;
+                if (indexOffset != (int)Mathf.Sign((offset))) index += indexOffset;//use only if going back to origin
+                elementList[index].MoveTowards(indexPosition, shiftAnimationTime);
+
+                //updateId
+                currentIndex += offset;
+                indexOffset = Mathf.Clamp(currentIndex - originIndex, -1, 1);
+            }
         });
 
         element.RegisterCallback<PointerUpEvent>((evt) =>
         {
-            dragging = false;
+            if (!dragging) return;
+            Vector3 finalPosition = ElementPosition(currentIndex);
+            element.transform.position = finalPosition;
 
-            element.MoveTowards(initialPosition, .05f);
+            //adjust indexes
+            indexOffset = Mathf.Clamp(currentIndex - originIndex, -1, 1);
+            elementList.Insert(currentIndex + Mathf.Clamp(indexOffset, 0, 1), element); //insert at +1 if origin is before current
+            elementList.RemoveAt(originIndex - Mathf.Clamp(indexOffset, -1, 0)); //remove at +1 if origin is after current
+
+            //adjust labels and enable interaction again
+            for (int i = 0; i < elementList.Count; i++)
+            {
+                elementList[i].pickingMode = PickingMode.Position;
+                elementList[i].field.label = $"Element {i}";
+            }
+
+            element.ReleasePointer(evt.pointerId);
+            dragging = false;
         });
     }
 
@@ -198,18 +256,19 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private void ResizeContent()
     {
         //resize conten to fit all elements
-        int elements = Mathf.Max(count, 1);
-        float height = (elementSize * elements) + elementSpacing * 4;
-        content.style.height = height;
+        content.style.height = contentSize;
 
         //position elements
         for (int i = 0; i < count; i++)
         {
-            ListElement<T, TValue> element = elementList[count - i - 1];
-            element.transform.position = Vector3.up * ((height - (elementSize) * i) - (elementSize + elementSpacing * 3));
+            int index = count - 1 - i;
+            ListElement<T, TValue> element = elementList[index];
+            element.transform.position = ElementPosition(index);
             element.style.width = content.worldBound.width;
         }
     }
+
+    private Vector3 ElementPosition(int index) => Vector3.up * ((contentSize - elementSize * (count - 1 - index)) - (elementSize + elementSpacing * 3));
 
     private void ElementValueChanged(ChangeEvent<TValue> evt)
     {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -64,11 +65,13 @@ public static class VisualElementUtilities
 
         element.RegisterCallback<MouseEnterEvent>((evt) =>
         {
+            if (element.pickingMode == PickingMode.Ignore) return;
             //Debug.Log("mouse enter");
             element.style.backgroundColor = highlightColor;
         });
         element.RegisterCallback<MouseLeaveEvent>((evt) =>
         {
+            if (element.pickingMode == PickingMode.Ignore) return;
             //Debug.Log($"mouse leave: {evt.pressedButtons}");
             bool holdingButton = evt.pressedButtons > 0;
             if (holdingButton) return;
@@ -78,12 +81,14 @@ public static class VisualElementUtilities
 
         element.RegisterCallback<MouseDownEvent>((evt) =>
         {
+            if (element.pickingMode == PickingMode.Ignore) return;
             element.CaptureMouse();
             element.style.backgroundColor = downColor;
             //Debug.Log("mouse down");
         }, trickleDownClick);
         element.RegisterCallback<MouseUpEvent>((evt) =>
         {
+            if (element.pickingMode == PickingMode.Ignore) return;
             element.ReleaseMouse();
             bool mouseOver = element.ContainsPoint(evt.localMousePosition);
             element.style.backgroundColor = mouseOver ? highlightColor : normalColor;
@@ -175,7 +180,7 @@ public static class VisualElementUtilities
     #endregion
 
     #region Animations
-    public static void MoveTowards(this VisualElement element, Vector3 goal, float animationDuration)
+    public static void MoveTowards(this VisualElement element, Vector3 goal, float animationDuration, Action onDone = null)
     {
         Vector3 startPosition = element.transform.position;
         float step = .02f;
@@ -184,13 +189,16 @@ public static class VisualElementUtilities
         float time = 0;
         var animation = element.schedule.Execute(() => MoveTowards(goal));
         animation.Every((long)(step * 1000));
-        animation.Until(() => time > 1 + scaledStep);
+        animation.Until(AnimationDone);
 
         void MoveTowards(Vector3 position)
         {
             element.transform.position = Vector3.Lerp(startPosition, position, time);
             time += scaledStep;
+            if (AnimationDone()) onDone?.Invoke();
         }
+
+        bool AnimationDone() => time > 1 + scaledStep;
     }
     #endregion
 
