@@ -19,7 +19,6 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private List<ListElement<T, TValue>> selectedElements = new();
 
     public int count => elementList.Count;
-    public new T this[int id] => elementList[id].field;
 
     #region Preset
     //Style parameters
@@ -135,6 +134,16 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             elementList.Insert(currentIndex + Mathf.Clamp(indexOffset, 0, 1), element); //insert at +1 if origin is before current
             elementList.RemoveAt(originIndex - Mathf.Clamp(indexOffset, -1, 0)); //remove at +1 if origin is after current
 
+            //create change list
+            Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
+            int min = Mathf.Min(currentIndex, originIndex);
+            int max = Mathf.Max(currentIndex, originIndex);
+            for (int i = min; i <= max; i++)
+            {
+                int oldIndex = i == currentIndex ? originIndex
+                ChangeEvent<TValue> change = ChangeEvent<TValue>.GetPooled();
+            }
+
             //adjust labels and enable interaction again
             for (int i = 0; i < elementList.Count; i++)
             {
@@ -233,6 +242,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 content.Remove(element);
                 UpdateListData();
                 ResizeContent();
+                BroadCastChangeEvent(removed: new Dictionary<int, TValue>() { { count, element.Value } });
             }
             return;
         }
@@ -252,6 +262,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         ResizeContent();
         SetupDragDrop(element);
         UpdateListData();
+        BroadCastChangeEvent(added: new Dictionary<int, TValue>() { { count - 1, value } });
     }
     private void ResizeContent()
     {
@@ -273,17 +284,31 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private void ElementValueChanged(ChangeEvent<TValue> evt)
     {
         UpdateListData();
+        if (evt.currentTarget is ListElement<T, TValue> element)
+        {
+            int index = elementList.IndexOf(element);
+            BroadCastChangeEvent(changed: new Dictionary<int, ChangeEvent<TValue>>() { { count, evt } });
+        }
     }
 
     private void UpdateListData()
     {
         countField.SetValueWithoutNotify(count);
         emptyList.style.display = count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
-        //call change event
+    }
+
+    private void BroadCastChangeEvent(
+        Dictionary<int, TValue> removed = null,
+        Dictionary<int, TValue> added = null,
+        Dictionary<int, ChangeEvent<TValue>> changed = null)
+    {
         var evt = CollectionChange<TValue>.GetPooled();
         evt.target = this;
 
         //add changes
+        evt.removedValues = removed ?? new();
+        evt.addedValues = added ?? new();
+        evt.changedValues = changed ?? new();
 
         SendEvent(evt);
     }
@@ -330,7 +355,7 @@ public class ListElement<T, TValue> : VisualElement where T : BaseField<TValue>
 
 public class CollectionChange<TValue> : EventBase<CollectionChange<TValue>>
 {
-    Dictionary<int, TValue> changedValues = new();
-    Dictionary<int, TValue> addedValues = new();
-    Dictionary<int, TValue> removedValues = new();
+    public Dictionary<int, ChangeEvent<TValue>> changedValues = new();
+    public Dictionary<int, TValue> addedValues = new();
+    public Dictionary<int, TValue> removedValues = new();
 }
