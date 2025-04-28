@@ -15,10 +15,10 @@ MonoBehaviour:
   searchFolders:
   - Assets/Tests
   - Assets/Scenes
-  - 
-  - 
-  - 
-  - 
+  - Assets/Package
+  - Assets/TextMesh Pro
+  - Assets/VisualElementPackage
+  - Assets/Package/Scripts
   Colors:
   - {r: 1, g: 1, b: 1, a: 1}
   Graphics:

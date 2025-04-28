@@ -140,8 +140,9 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             int max = Mathf.Max(currentIndex, originIndex);
             for (int i = min; i <= max; i++)
             {
-                int oldIndex = i == currentIndex ? originIndex
-                ChangeEvent<TValue> change = ChangeEvent<TValue>.GetPooled();
+                int oldIndex = i == originIndex ? currentIndex : i - indexOffset;
+                ChangeEvent<TValue> change = ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
+                valuesChanged[i] = change;
             }
 
             //adjust labels and enable interaction again
