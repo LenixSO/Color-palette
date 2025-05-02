@@ -95,6 +95,38 @@ public static class VisualElementUtilities
             //Debug.Log($"mouse up: {element.ContainsPoint(evt.localMousePosition)}");
         });
     }
+    
+    /// <summary>
+    /// apparently only works (and is needed) on editor visualElement
+    /// </summary>
+    public static void FocusElement(this VisualElement element, bool forceFocusable = false)
+    {
+        if (!element.focusable)
+        {
+            if (!forceFocusable)
+            {
+                Debug.LogWarning($"Element [{element}] is not focusable");
+                return;
+            }
+            element.focusable = true;
+        }
+
+        bool isRoot = element.parent == null;
+        VisualElement root = element;
+
+        while (!isRoot)
+        {
+            root = root.parent;
+            isRoot = root.parent == null;
+        }
+
+        Focusable lastFocused = root.panel.focusController.focusedElement;
+        FocusOutEvent focusOutEvent = FocusEventBase<FocusOutEvent>.GetPooled(lastFocused, lastFocused, FocusChangeDirection.none, root.panel.focusController);
+        FocusEvent focusEvent = FocusEventBase<FocusEvent>.GetPooled(element, lastFocused, FocusChangeDirection.unspecified, root.panel.focusController);
+
+        root.SendEvent(focusOutEvent);
+        root.SendEvent(focusEvent);
+    }
 
     #region ScrollView
     public static void EnableMouseDrag(this ScrollView scrollView)

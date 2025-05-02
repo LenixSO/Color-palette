@@ -13,18 +13,18 @@ MonoBehaviour:
   m_Name: TestPalette
   m_EditorClassIdentifier: 
   searchFolders:
-  - Assets/Tests
-  - Assets/Scenes
-  - Assets/Package
-  - Assets/TextMesh Pro
-  - Assets/VisualElementPackage
-  - Assets/Package/Scripts
+  - 
+  - 
+  - 
+  - 
+  - 
   Colors:
-  - {r: 1, g: 1, b: 1, a: 1}
+  - {r: 0.25882354, g: 0.25882354, b: 0.25882354, a: 1}
+  - {r: 1, g: 0, b: 0, a: 1}
   Graphics:
   - {fileID: 3729563588823014229, guid: 8e925a3e07771c349a0c76d99b319bbb, type: 3}
   - {fileID: 3752141587310636774, guid: 8e925a3e07771c349a0c76d99b319bbb, type: 3}
   - {fileID: 1484364145049128510, guid: a2ab6ed395677214696a32f415b1bd16, type: 3}
   Renderers: []
-  graphicsLookUp: 000000000000000000000000
+  graphicsLookUp: 000000000100000000000000
   renderersLookUp: 

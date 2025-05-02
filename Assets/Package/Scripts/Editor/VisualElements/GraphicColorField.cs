@@ -1,18 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
-public class GraphicColorField : MonoBehaviour
+public class GraphicColorField<T> : BaseField<Color> where T : Object
 {
-    // Start is called before the first frame update
-    void Start()
+    public GraphicColorField(string label) : base(label, null)
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

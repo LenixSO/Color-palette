@@ -12,7 +12,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private Button plusButton;
     private Button minusButton;
 
-    private float contentSize => (elementSize * Mathf.Max(count, 1)) + elementSpacing * 4;
+    private float contentSize => (elementSize * Mathf.Max(count, 1)) + elementSpacing * 6;
 
     private List<ListElement<T, TValue>> elementList = new();
     private IntegerField countField;
@@ -23,15 +23,15 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     #region Preset
     //Style parameters
     private readonly float elementSize = 25;
-    public static readonly float elementSpacing = 2f;
+    public static readonly float elementSpacing = 1.2f;
     public static readonly Color bgColor = ColorExtension.GrayShade(.26f);
     public static readonly Color lighterColor = ColorExtension.GrayShade(.2f);
     public static readonly Color darkerColor = ColorExtension.GrayShade(.4f);
     public static readonly Color borderColor = ColorExtension.GrayShade(.1f);
-    private static readonly float borderSize = 1.1f;
-    private static readonly float borderRadius = 3f;
-    private static readonly float buttonPaddingHorizontal = 4f;
-    private static readonly float buttonPaddingVertical = 2f;
+    public static readonly float borderSize = 1.1f;
+    public static readonly float borderRadius = 3f;
+    public static readonly float buttonPaddingHorizontal = 4f;
+    public static readonly float buttonPaddingVertical = 2f;
 
     private static Button ListButtons(Texture image)
     {
@@ -80,6 +80,20 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             {
                 elementList[i].pickingMode = PickingMode.Ignore;
             }
+
+            if (!evt.ctrlKey && !evt.shiftKey)
+            {
+                for (int i = 0; i < selectedElements.Count; i++)
+                {
+                    selectedElements[i].SelectStyle(false);
+                }
+            }
+            else if(evt.shiftKey)
+            {
+                //select all in between
+            }
+            
+            element.SelectStyle(true);
         });
 
         element.RegisterCallback<PointerMoveEvent>((evt) =>
@@ -128,31 +142,42 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             if (!dragging) return;
             Vector3 finalPosition = ElementPosition(currentIndex);
             element.transform.position = finalPosition;
-
-            //adjust indexes
-            indexOffset = Mathf.Clamp(currentIndex - originIndex, -1, 1);
-            elementList.Insert(currentIndex + Mathf.Clamp(indexOffset, 0, 1), element); //insert at +1 if origin is before current
-            elementList.RemoveAt(originIndex - Mathf.Clamp(indexOffset, -1, 0)); //remove at +1 if origin is after current
-
-            //create change list
-            Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
-            int min = Mathf.Min(currentIndex, originIndex);
-            int max = Mathf.Max(currentIndex, originIndex);
-            for (int i = min; i <= max; i++)
+            
+            if (currentIndex != originIndex)
             {
-                int oldIndex = i == originIndex ? currentIndex : i - indexOffset;
-                ChangeEvent<TValue> change = ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
-                valuesChanged[i] = change;
+                //adjust indexes
+                indexOffset = Mathf.Clamp(currentIndex - originIndex, -1, 1);
+                elementList.Insert(currentIndex + Mathf.Clamp(indexOffset, 0, 1),
+                    element); //insert at +1 if origin is before current
+                elementList.RemoveAt(originIndex -
+                                     Mathf.Clamp(indexOffset, -1, 0)); //remove at +1 if origin is after current
+
+                //create change list
+                Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
+                int min = Mathf.Min(currentIndex, originIndex);
+                int max = Mathf.Max(currentIndex, originIndex);
+                for (int i = min; i <= max; i++)
+                {
+                    int oldIndex = i == originIndex ? currentIndex : i - indexOffset;
+                    ChangeEvent<TValue> change =
+                        ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
+                    valuesChanged[i] = change;
+                }
+
+                //adjust labels and enable interaction again
+                for (int i = 0; i < elementList.Count; i++)
+                    elementList[i].field.label = $"Element {i}";
+
+                BroadCastChangeEvent(changed: valuesChanged);
             }
 
             //adjust labels and enable interaction again
             for (int i = 0; i < elementList.Count; i++)
-            {
                 elementList[i].pickingMode = PickingMode.Position;
-                elementList[i].field.label = $"Element {i}";
-            }
 
             element.ReleasePointer(evt.pointerId);
+            this.FocusElement(true);
+            if(!selectedElements.Contains(element)) selectedElements.Add(element);
             dragging = false;
         });
     }
@@ -177,7 +202,6 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
         content = new();
         content.style.backgroundColor = bgColor;
-        content.style.paddingBottom = elementSpacing;
         content.SetBorder(borderSize, borderRadius, borderColor);
         //resizeElementsAtStart
         content.RegisterCallback<GeometryChangedEvent>(InitContentSize);
@@ -214,7 +238,16 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         foldout.Add(buttonsWindow);
         header.Add(foldout);
         header.Add(countField);
-
+        
+        RegisterCallback<BlurEvent>(evt =>
+        {
+            //clear selected elements
+            for (int i = 0; i < selectedElements.Count; i++)
+            {
+                selectedElements[i].SelectStyle(false);
+            }
+            selectedElements.Clear();
+        });
         Add(header);
         ResizeContent();
     }
@@ -222,7 +255,16 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private void ElementCountChanged(NavigationSubmitEvent evt)
     {
         int difference = countField.value - count;
-
+        if(difference == 0) return;
+        
+        if (difference < 0)
+        {
+            //remove elements
+        }
+        else
+        {
+            //add elements
+        }
         Debug.Log($"cound changed by {difference}");
     }
 
@@ -269,6 +311,9 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     {
         //resize conten to fit all elements
         content.style.height = contentSize;
+        float horizontalSpacing = content.style.borderLeftWidth.value + content.style.borderRightWidth.value;
+        horizontalSpacing += content.style.paddingLeft.value.value + content.style.paddingRight.value.value;
+        horizontalSpacing += content.style.marginLeft.value.value + content.style.marginRight.value.value;
 
         //position elements
         for (int i = 0; i < count; i++)
@@ -276,11 +321,11 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             int index = count - 1 - i;
             ListElement<T, TValue> element = elementList[index];
             element.transform.position = ElementPosition(index);
-            element.style.width = content.worldBound.width;
+            element.style.width = content.worldBound.width - horizontalSpacing;
         }
     }
 
-    private Vector3 ElementPosition(int index) => Vector3.up * ((contentSize - elementSize * (count - 1 - index)) - (elementSize + elementSpacing * 3));
+    private Vector3 ElementPosition(int index) => Vector3.up * ((contentSize - elementSize * (count - 1 - index)) - (elementSize + elementSpacing * 4));
 
     private void ElementValueChanged(ChangeEvent<TValue> evt)
     {
@@ -303,7 +348,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         Dictionary<int, TValue> added = null,
         Dictionary<int, ChangeEvent<TValue>> changed = null)
     {
-        var evt = CollectionChange<TValue>.GetPooled();
+        var evt = CollectionChangeEvent<TValue>.GetPooled();
         evt.target = this;
 
         //add changes
@@ -331,30 +376,44 @@ public class ListElement<T, TValue> : VisualElement where T : BaseField<TValue>
         set => field.value = value;
     }
 
+    private Image image;
+
+    private readonly float borderSize = .1f;
+    private readonly Color bgColor = new(.25f,.25f,.25f);
+    private readonly Color defaultColor = new(.75f,.75f,.75f);
+    private readonly Color selectedColor = new(0.4f, 0.7f, 0.8f);
+
     public ListElement(string label = "ListElement", TValue value = default)
     {
         style.flexDirection = FlexDirection.Row;
-        style.marginTop = ListField<T, TValue>.elementSpacing;
+        //style.marginTop = ListField<T, TValue>.elementSpacing;
         style.paddingLeft = 5f;
         style.paddingRight = 5f;
+        this.SetBorder(borderSize, borderColor: bgColor);
         this.SetClickEffect(ListField<T, TValue>.bgColor, ListField<T, TValue>.lighterColor, ListField<T, TValue>.darkerColor);
 
-        Button dragButton = new();
-
-        Image img = new();
-        img.image = EditorGUIUtility.IconContent("align_vertically_bottom").image;
+        image = new();
+        image.image = EditorGUIUtility.IconContent("align_vertically_bottom").image;
 
         field = Activator.CreateInstance<T>();
         field.label = label;
         field.style.flexGrow = 1;
         field.SetValueWithoutNotify(value);
 
-        Add(img);
+        Add(image);
         Add(field);
+    }
+
+    public void SelectStyle(bool selected)
+    {
+        Color color = selected ? selectedColor : defaultColor;
+        this.SetBorder(borderSize, borderColor: selected ? selectedColor : bgColor);
+        image.tintColor = color;
+        field.labelElement.style.color = color;
     }
 }
 
-public class CollectionChange<TValue> : EventBase<CollectionChange<TValue>>
+public class CollectionChangeEvent<TValue> : EventBase<CollectionChangeEvent<TValue>>
 {
     public Dictionary<int, ChangeEvent<TValue>> changedValues = new();
     public Dictionary<int, TValue> addedValues = new();
