@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine.UIElements;
 using UnityEditor;
 using System;
-using System.Xml.Linq;
 
 public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 {
@@ -152,18 +151,9 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                                      Mathf.Clamp(indexOffset, -1, 0)); //remove at +1 if origin is after current
 
                 //create change list
-                Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
                 int min = Mathf.Min(currentIndex, originIndex);
                 int max = Mathf.Max(currentIndex, originIndex);
-                int size = max - min + 1;//gotta include the final index too
-                for (int i = min; i <= max; i++)
-                {
-                    //cycling using Rest division to determine old index
-                    int oldIndex = min + ((i - min) + size - indexOffset) % size;
-                    ChangeEvent<TValue> change =
-                        ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
-                    valuesChanged[i] = change;
-                }
+                Dictionary<int, ChangeEvent<TValue>> valuesChanged = CheckChanges(min, max, indexOffset, true);//gotta include the final index too
 
                 //adjust labels
                 for (int i = 0; i < elementList.Count; i++)
@@ -306,11 +296,6 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         BroadCastChangeEvent(removed: removed, changed: changed);
     }
 
-    private void RemoveElements()
-    {
-        
-    }
-
     public void AddElement(TValue value = default)
     {
         ListElement<T, TValue> element = new($"Element {count}");
@@ -375,6 +360,24 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         evt.changedValues = changed ?? new();
 
         SendEvent(evt);
+    }
+
+    /// <param name="cycleDirection">1 = added; -1 = removed</param>
+    private Dictionary<int, ChangeEvent<TValue>> CheckChanges(int min, int max, int cycleDirection, bool includeOrigin = false)
+    {
+        Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
+        int size = max - min + (includeOrigin ? 1 : 0);
+        for (int i = min; i <= max; i++)
+        {
+            //cycling using Rest division to determine old index
+            int oldIndex = min + ((i - min) + size + cycleDirection) % size;
+            //Debug.Log($"{i} was {oldIndex}");
+            ChangeEvent<TValue> change =
+                ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
+            valuesChanged[i] = change;
+        }
+
+        return valuesChanged;
     }
 
     public TValue ValueAt(int id)
