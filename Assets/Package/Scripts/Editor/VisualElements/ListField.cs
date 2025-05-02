@@ -92,8 +92,12 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             {
                 //select all in between
             }
-            
-            element.SelectStyle(true);
+
+            if (!selectedElements.Contains(element))
+            {
+                selectedElements.Add(element);
+                element.SelectStyle(true);
+            }
         });
 
         element.RegisterCallback<PointerMoveEvent>((evt) =>
@@ -109,21 +113,16 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             //mshiftAnimationTimeove other elements out of the way
             Vector3 indexPosition = ElementPosition(currentIndex);
             float distanceFromOrigin = position.y - indexPosition.y;
+            //element below is 1 index above this
             if (distanceFromOrigin > elementSize * shiftOffset && currentIndex < count - 1)
-            {
-                //element below is 1 index above this
-                //Debug.Log("Past the element below");
-
                 ShiftElements(1);
-            }
+            //element above is 1 index below this
             else if (distanceFromOrigin < -(elementSize * shiftOffset) && currentIndex > 0)
-            {
-                //element above is 1 index below this
-                //Debug.Log("Past the element above");
-
                 ShiftElements(-1);
-            }
-
+            
+            return;
+            //A cycle between origin/current?
+            //cycle direction changes
             void ShiftElements(int offset)
             {
                 //move element
@@ -156,28 +155,29 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
                 int min = Mathf.Min(currentIndex, originIndex);
                 int max = Mathf.Max(currentIndex, originIndex);
+                int size = max - min + 1;//gotta include the final index too
                 for (int i = min; i <= max; i++)
                 {
-                    int oldIndex = i == originIndex ? currentIndex : i - indexOffset;
+                    //cycling using Rest division to determine old index
+                    int oldIndex = min + ((i - min) + size - indexOffset) % size;
                     ChangeEvent<TValue> change =
                         ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
                     valuesChanged[i] = change;
                 }
 
-                //adjust labels and enable interaction again
+                //adjust labels
                 for (int i = 0; i < elementList.Count; i++)
                     elementList[i].field.label = $"Element {i}";
 
                 BroadCastChangeEvent(changed: valuesChanged);
             }
 
-            //adjust labels and enable interaction again
+            //enable interaction again
             for (int i = 0; i < elementList.Count; i++)
                 elementList[i].pickingMode = PickingMode.Position;
 
             element.ReleasePointer(evt.pointerId);
             this.FocusElement(true);
-            if(!selectedElements.Contains(element)) selectedElements.Add(element);
             dragging = false;
         });
     }
@@ -275,6 +275,8 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
     private void RemoveElement()
     {
+        Dictionary<int, TValue> removed = new();
+        Dictionary<int, ChangeEvent<TValue>> changed = new();
         if(selectedElements.Count <= 0)
         {
             if(elementList.Count > 0)
@@ -285,12 +287,28 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 content.Remove(element);
                 UpdateListData();
                 ResizeContent();
-                BroadCastChangeEvent(removed: new Dictionary<int, TValue>() { { count, element.Value } });
+                removed[count] = element.Value;
             }
-            return;
+        }
+        else
+        {
+            //remove selected elements
+            int min = elementList.Count;
+            int max = 0;
+            for (int i = 0; i < selectedElements.Count; i++)
+            {
+                int index = elementList.IndexOf(selectedElements[i]);
+                min = Mathf.Min(min, index);
+                max = Mathf.Max(max, index);
+            }
         }
 
-        //remove selected elements
+        BroadCastChangeEvent(removed: removed, changed: changed);
+    }
+
+    private void RemoveElements()
+    {
+        
     }
 
     public void AddElement(TValue value = default)
