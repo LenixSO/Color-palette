@@ -76,16 +76,13 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             element.BringToFront();
             element.CapturePointer(evt.pointerId);
             for (int i = 0; i < elementList.Count; i++)
-            {
                 elementList[i].pickingMode = PickingMode.Ignore;
-            }
 
             if (!evt.ctrlKey && !evt.shiftKey)
             {
                 for (int i = 0; i < selectedElements.Count; i++)
-                {
                     selectedElements[i].SelectStyle(false);
-                }
+                selectedElements.Clear();
             }
             else if(evt.shiftKey)
             {
@@ -153,11 +150,10 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 //create change list
                 int min = Mathf.Min(currentIndex, originIndex);
                 int max = Mathf.Max(currentIndex, originIndex);
-                Dictionary<int, ChangeEvent<TValue>> valuesChanged = CheckChanges(min, max, indexOffset, true);//gotta include the final index too
+                Dictionary<int, ChangeEvent<TValue>> valuesChanged = CheckChanges(min, max, indexOffset);
 
                 //adjust labels
-                for (int i = 0; i < elementList.Count; i++)
-                    elementList[i].field.label = $"Element {i}";
+                UpdateLabels();
 
                 BroadCastChangeEvent(changed: valuesChanged);
             }
@@ -167,7 +163,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 elementList[i].pickingMode = PickingMode.Position;
 
             element.ReleasePointer(evt.pointerId);
-            this.FocusElement(true);
+            content.FocusElement(true);
             dragging = false;
         });
     }
@@ -212,8 +208,10 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         buttonsWindow.style.alignSelf = Align.FlexEnd;
 
         plusButton = ListButtons(EditorGUIUtility.IconContent("Toolbar Plus").image);
+        plusButton.name = "Plus Button";
         plusButton.clicked += AddNewElement;
         minusButton = ListButtons(EditorGUIUtility.IconContent("Toolbar Minus").image);
+        minusButton.name = "Minus Button";
         minusButton.clicked += RemoveElement;
 
         buttonsWindow.Add(plusButton);
@@ -272,28 +270,41 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             if(elementList.Count > 0)
             {
                 var element = elementList[^1];
-                element.UnregisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
-                elementList.Remove(element);
-                content.Remove(element);
-                UpdateListData();
-                ResizeContent();
+                RemoveTargetElement(element);
                 removed[count] = element.Value;
             }
         }
         else
         {
-            //remove selected elements
-            int min = elementList.Count;
-            int max = 0;
-            for (int i = 0; i < selectedElements.Count; i++)
+            int id = elementList.IndexOf(selectedElements[0]);
+            if (id == count - 1)
             {
-                int index = elementList.IndexOf(selectedElements[i]);
-                min = Mathf.Min(min, index);
-                max = Mathf.Max(max, index);
+                //just remove the last
+                return;
             }
+            
+            //only one selected
+            changed = CheckChanges(id, count - 1, 1);
+            changed.Remove(count - 1);//last id not needed
+            var element = elementList[id];
+            RemoveTargetElement(element);
+            removed[count] = element.Value;
+            selectedElements.Clear();
         }
 
+        UpdateListData();
+        UpdateLabels();
+        ResizeContent();
         BroadCastChangeEvent(removed: removed, changed: changed);
+        
+        return;
+
+        void RemoveTargetElement(ListElement<T, TValue> element)
+        {
+            element.UnregisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
+            elementList.Remove(element);
+            content.Remove(element);
+        }
     }
 
     public void AddElement(TValue value = default)
@@ -309,6 +320,12 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         SetupDragDrop(element);
         UpdateListData();
         BroadCastChangeEvent(added: new Dictionary<int, TValue>() { { count - 1, value } });
+    }
+
+    private void UpdateLabels()
+    {
+        for (int i = 0; i < elementList.Count; i++)
+            elementList[i].field.label = $"Element {i}";
     }
     private void ResizeContent()
     {
@@ -363,15 +380,15 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     }
 
     /// <param name="cycleDirection">1 = added; -1 = removed</param>
-    private Dictionary<int, ChangeEvent<TValue>> CheckChanges(int min, int max, int cycleDirection, bool includeOrigin = false)
+    private Dictionary<int, ChangeEvent<TValue>> CheckChanges(int min, int max, int cycleDirection)
     {
         Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
-        int size = max - min + (includeOrigin ? 1 : 0);
+        int size = max - min + 1;
         for (int i = min; i <= max; i++)
         {
             //cycling using Rest division to determine old index
             int oldIndex = min + ((i - min) + size + cycleDirection) % size;
-            //Debug.Log($"{i} was {oldIndex}");
+            Debug.Log($"{i} was {oldIndex}");
             ChangeEvent<TValue> change =
                 ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
             valuesChanged[i] = change;
