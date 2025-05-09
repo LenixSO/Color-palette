@@ -160,7 +160,8 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 //create change list
                 int min = Mathf.Min(currentIndex, originIndex);
                 int max = Mathf.Max(currentIndex, originIndex);
-                Dictionary<int, ChangeEvent<TValue>> valuesChanged = CheckChanges(min, max, indexOffset);
+                Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
+                CheckChanges(min, max, -indexOffset, valuesChanged);
 
                 //adjust labels
                 UpdateLabels();
@@ -286,19 +287,18 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         }
         else
         {
-            int id = elementList.IndexOf(selectedElements[0]);
-            if (id == count - 1)
-            {
-                //just remove the last
-                return;
-            }
             
             //only one selected
-            changed = CheckChanges(id, count - 1, 1);
-            changed.Remove(count - 1);//last id not needed
-            var element = elementList[id];
-            RemoveTargetElement(element);
-            removed[count] = element.Value;
+            for (int i = 0; i < selectedElements.Count; i++)
+            {
+                int id = elementList.IndexOf(selectedElements[i]);
+                CheckChanges(id, count - 1, -1, changed);
+                changed.Remove(0);//first id not needed
+                var element = elementList[id];
+                RemoveTargetElement(element);
+                removed[count] = element.Value;
+            }
+
             selectedElements.Clear();
         }
 
@@ -390,9 +390,10 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     }
 
     /// <param name="cycleDirection">1 = added; -1 = removed</param>
-    private Dictionary<int, ChangeEvent<TValue>> CheckChanges(int min, int max, int cycleDirection)
+    private void CheckChanges(int min, int max, int cycleDirection, 
+        Dictionary<int, ChangeEvent<TValue>> valuesChanged)
     {
-        Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
+        valuesChanged ??= new();
         int size = max - min + 1;
         for (int i = min; i <= max; i++)
         {
@@ -403,8 +404,6 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
             valuesChanged[i] = change;
         }
-
-        return valuesChanged;
     }
 
     public TValue ValueAt(int id)
