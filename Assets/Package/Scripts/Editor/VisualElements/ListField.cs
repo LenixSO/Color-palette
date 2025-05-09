@@ -253,16 +253,35 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     {
         int difference = countField.value - count;
         if(difference == 0) return;
+        //Debug.Log($"cound changed by {difference}");
         
+        Dictionary<int, TValue> added = new();
+        Dictionary<int, TValue> removed = new();
         if (difference < 0)
         {
             //remove elements
+            difference *= -1;
+            int removeCount = Mathf.Min(difference, elementList.Count);
+            for (int i = 0; i < removeCount; i++)
+            {
+                var element = elementList[^1];
+                RemoveTargetElement(element);
+                removed[count] = element.Value;
+            }
         }
         else
         {
             //add elements
+            for (int i = 0; i < difference; i++)
+            {
+                AddElement();
+            }
         }
-        Debug.Log($"cound changed by {difference}");
+        
+        UpdateListData();
+        UpdateLabels();
+        ResizeContent();
+        BroadCastChangeEvent(added: added, removed: removed);
     }
 
     private void AddNewElement()
@@ -312,15 +331,13 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         UpdateLabels();
         ResizeContent();
         BroadCastChangeEvent(removed: removed, changed: changed);
-        
-        return;
-
-        void RemoveTargetElement(ListElement<T, TValue> element)
-        {
-            element.UnregisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
-            elementList.Remove(element);
-            content.Remove(element);
-        }
+    }
+    
+    private void RemoveTargetElement(ListElement<T, TValue> element)
+    {
+        element.UnregisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
+        elementList.Remove(element);
+        content.Remove(element);
     }
 
     public void AddElement(TValue value = default)
