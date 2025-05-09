@@ -187,6 +187,14 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         Foldout foldout = new();
         foldout.text = label;
         foldout.style.flexGrow = 1;
+        foldout.RegisterCallback<PointerMoveEvent>((evt) =>
+        {
+            Debug.Log($"foldout enter => {content.ContainsPoint(evt.localPosition)}");
+            for (int i = 0; i < DragAndDrop.objectReferences.Length; i++)
+            {
+                
+            }
+        });
 
         countField = new("");
         countField.style.width = 50;
