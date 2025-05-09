@@ -84,11 +84,9 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 for (int i = 0; i < selectedElements.Count; i++)
                     selectedElements[i].SelectStyle(false);
                 selectedElements.Clear();
-                if (!containsElement)
-                {
-                    selectedElements.Add(element);
-                    containsElement = true;
-                }
+
+                selectedElements.Add(element);
+                containsElement = true;
             }
             else if(evt.shiftKey)
             {
