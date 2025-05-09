@@ -78,22 +78,34 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             for (int i = 0; i < elementList.Count; i++)
                 elementList[i].pickingMode = PickingMode.Ignore;
 
+            bool containsElement = selectedElements.Contains(element);
             if (!evt.ctrlKey && !evt.shiftKey)
             {
                 for (int i = 0; i < selectedElements.Count; i++)
                     selectedElements[i].SelectStyle(false);
                 selectedElements.Clear();
+                if (!containsElement)
+                {
+                    selectedElements.Add(element);
+                    containsElement = true;
+                }
             }
             else if(evt.shiftKey)
             {
                 //select all in between
             }
-
-            if (!selectedElements.Contains(element))
+            else
             {
-                selectedElements.Add(element);
-                element.SelectStyle(true);
+                //ctrl pressed
+                if (!containsElement)
+                    selectedElements.Add(element);
+                else
+                    selectedElements.Remove(element);
+
+                containsElement = !containsElement;
             }
+
+            element.SelectStyle(containsElement);
         });
 
         element.RegisterCallback<PointerMoveEvent>((evt) =>
