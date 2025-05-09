@@ -276,9 +276,9 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     {
         Dictionary<int, TValue> removed = new();
         Dictionary<int, ChangeEvent<TValue>> changed = new();
-        if(selectedElements.Count <= 0)
+        if (selectedElements.Count <= 0)
         {
-            if(elementList.Count > 0)
+            if (elementList.Count > 0)
             {
                 var element = elementList[^1];
                 RemoveTargetElement(element);
@@ -287,14 +287,21 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         }
         else
         {
+            List<int> indexes = new(selectedElements.Count);
+            for (int i = 0; i < selectedElements.Count; i++)
+                indexes.Add(elementList.IndexOf(selectedElements[i]));
             
-            //only one selected
+            indexes.Sort();
+            for (int i = 0; i < indexes.Count; i++)
+            {
+                int id = indexes[i];
+                CheckChanges(id, count - 1, -1, changed);
+                changed.Remove(id);//first id not needed
+            }
+
             for (int i = 0; i < selectedElements.Count; i++)
             {
-                int id = elementList.IndexOf(selectedElements[i]);
-                CheckChanges(id, count - 1, -1, changed);
-                changed.Remove(0);//first id not needed
-                var element = elementList[id];
+                var element = selectedElements[i];
                 RemoveTargetElement(element);
                 removed[count] = element.Value;
             }
@@ -362,7 +369,6 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         UpdateListData();
         if (evt.currentTarget is ListElement<T, TValue> element)
         {
-            int index = elementList.IndexOf(element);
             BroadCastChangeEvent(changed: new Dictionary<int, ChangeEvent<TValue>>() { { count, evt } });
         }
     }
@@ -399,7 +405,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         {
             //cycling using Rest division to determine old index
             int oldIndex = min + ((i - min) + size + cycleDirection) % size;
-            Debug.Log($"{i} was {oldIndex}");
+            //Debug.Log($"{i} was {oldIndex}");
             ChangeEvent<TValue> change =
                 ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
             valuesChanged[i] = change;
