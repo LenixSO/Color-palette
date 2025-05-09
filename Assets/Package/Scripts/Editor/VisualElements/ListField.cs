@@ -81,9 +81,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             bool containsElement = selectedElements.Contains(element);
             if (!evt.ctrlKey && !evt.shiftKey)
             {
-                for (int i = 0; i < selectedElements.Count; i++)
-                    selectedElements[i].SelectStyle(false);
-                selectedElements.Clear();
+                ClearSelectedElements();
 
                 selectedElements.Add(element);
                 containsElement = true;
@@ -238,7 +236,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         header.Add(foldout);
         header.Add(countField);
         
-        RegisterCallback<BlurEvent>(evt =>
+        content.RegisterCallback<BlurEvent>(evt =>
         {
             //clear selected elements
             for (int i = 0; i < selectedElements.Count; i++)
@@ -269,6 +267,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
     private void AddNewElement()
     {
+        ClearSelectedElements();
         AddElement();
     }
 
@@ -331,12 +330,19 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         element.style.height = elementSize - elementSpacing;
         element.field.SetValueWithoutNotify(value);
         element.RegisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
+        element.SelectStyle(false);
         elementList.Add(element);
         content.Add(element);
         ResizeContent();
         SetupDragDrop(element);
         UpdateListData();
         BroadCastChangeEvent(added: new Dictionary<int, TValue>() { { count - 1, value } });
+    }
+
+    public TValue ValueAt(int id)
+    {
+        if (id < 0 || id >= count) return default;
+        return elementList[id].Value;
     }
 
     private void UpdateLabels()
@@ -360,6 +366,13 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             element.transform.position = ElementPosition(index);
             element.style.width = content.worldBound.width - horizontalSpacing;
         }
+    }
+
+    private void ClearSelectedElements()
+    {
+        for (int i = 0; i < selectedElements.Count; i++)
+            selectedElements[i].SelectStyle(false);
+        selectedElements.Clear();
     }
 
     private Vector3 ElementPosition(int index) => Vector3.up * ((contentSize - elementSize * (count - 1 - index)) - (elementSize + elementSpacing * 4));
@@ -410,12 +423,6 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 ChangeEvent<TValue>.GetPooled(elementList[oldIndex].Value, elementList[i].Value);
             valuesChanged[i] = change;
         }
-    }
-
-    public TValue ValueAt(int id)
-    {
-        if (id < 0 || id >= count) return default;
-        return elementList[id].Value;
     }
 }
 

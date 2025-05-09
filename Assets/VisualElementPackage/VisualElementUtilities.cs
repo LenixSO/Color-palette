@@ -74,10 +74,9 @@ public static class VisualElementUtilities
             if (element.pickingMode == PickingMode.Ignore) return;
             //Debug.Log($"mouse leave: {evt.pressedButtons}");
             bool holdingButton = evt.pressedButtons > 0;
-            if (holdingButton) return;
+            if (holdingButton && evt.currentTarget != element) return;
             element.style.backgroundColor = normalColor;
         });
-
 
         element.RegisterCallback<MouseDownEvent>((evt) =>
         {
