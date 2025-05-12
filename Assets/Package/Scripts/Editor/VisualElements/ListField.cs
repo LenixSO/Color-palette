@@ -79,16 +79,37 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
                 elementList[i].pickingMode = PickingMode.Ignore;
 
             bool containsElement = selectedElements.Contains(element);
-            if (!evt.ctrlKey && !evt.shiftKey)
+            if (selectedElements.Count <= 0 || (!evt.ctrlKey && !evt.shiftKey))
             {
                 ClearSelectedElements();
 
                 selectedElements.Add(element);
                 containsElement = true;
             }
-            else if(evt.shiftKey)
+            else if (evt.shiftKey)
             {
+                selectedElements.Add(element);
+                containsElement = true;
+                
                 //select all in between
+                int minId = elementList.IndexOf(selectedElements[0]);
+                int maxId = minId;
+
+                for (int i = 1; i < selectedElements.Count; i++)
+                {
+                    int id = elementList.IndexOf(selectedElements[i]);
+                    if (id < minId) minId = id;
+                    if (id > maxId) maxId = id;
+                }
+
+                for (int i = minId; i < maxId; i++)
+                {
+                    if (selectedElements.Contains(elementList[i])) continue;
+
+                    ListElement<T,TValue> currentElement = elementList[i];
+                    selectedElements.Add(currentElement);
+                    currentElement.SelectStyle(true);
+                }
             }
             else
             {
@@ -189,7 +210,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         foldout.style.flexGrow = 1;
         foldout.RegisterCallback<PointerMoveEvent>((evt) =>
         {
-            Debug.Log($"foldout enter => {content.ContainsPoint(evt.localPosition)}");
+            //Debug.Log($"foldout enter => {content.ContainsPoint(evt.localPosition)}");
             for (int i = 0; i < DragAndDrop.objectReferences.Length; i++)
             {
                 
