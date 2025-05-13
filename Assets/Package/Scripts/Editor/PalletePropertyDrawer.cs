@@ -46,8 +46,10 @@ public class PalletePropertyDrawer : Editor
         }
         folders.RegisterCallback<CollectionChangeEvent<Object>>(UpdatePrefabFolders);
         root.Add(folders);
-        
-        root.Add(new ListField<ColorField, Color>());
+
+        ListField<ColorReferenceField, Color> colorRef = new();
+        colorRef.AddElement(Color.white);
+        root.Add(colorRef);
 
         colorsRoot = new Foldout();
         colorsRoot.text = "Colors";
