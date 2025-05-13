@@ -208,14 +208,6 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         Foldout foldout = new();
         foldout.text = label;
         foldout.style.flexGrow = 1;
-        foldout.RegisterCallback<PointerMoveEvent>((evt) =>
-        {
-            //Debug.Log($"foldout enter => {content.ContainsPoint(evt.localPosition)}");
-            for (int i = 0; i < DragAndDrop.objectReferences.Length; i++)
-            {
-                
-            }
-        });
 
         countField = new("");
         countField.style.width = 50;
@@ -228,12 +220,8 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         content.style.backgroundColor = bgColor;
         content.SetBorder(borderSize, borderRadius, borderColor);
         //resizeElementsAtStart
-        content.RegisterCallback<GeometryChangedEvent>(InitContentSize);
-        void InitContentSize(GeometryChangedEvent evt)
-        {
-            ResizeContent();
-            content.UnregisterCallback<GeometryChangedEvent>(InitContentSize);
-        }
+        content.RegisterCallback<GeometryChangedEvent>(ContentResize);
+        void ContentResize(GeometryChangedEvent evt) { ResizeContent(); }
 
         VisualElement buttonsWindow = new();
         buttonsWindow.SetBorder(borderSize, borderRadius, borderColor);
