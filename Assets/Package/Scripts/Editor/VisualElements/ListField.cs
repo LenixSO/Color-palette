@@ -8,8 +8,8 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 {
     private Label emptyList;
     private VisualElement content;
-    private Button plusButton;
-    private Button minusButton;
+    public Button plusButton { get; private set; }
+    public Button minusButton { get; private set; }
 
     private float contentSize => (elementSize * Mathf.Max(count, 1)) + elementSpacing * 6;
 
@@ -18,6 +18,8 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private List<ListElement<T, TValue>> selectedElements = new();
 
     public int count => elementList.Count;
+
+    private bool interactable = true;
 
     #region Preset
     //Style parameters
@@ -64,6 +66,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
         element.RegisterCallback<PointerDownEvent>((evt) =>
         {
+            if(!interactable) return;
             //setup values
             totalArea = (element.localBound.height * (elementList.Count - 1)) + (element.localBound.height / 2f);
             initialPosition = element.transform.position;
@@ -127,6 +130,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
         element.RegisterCallback<PointerMoveEvent>((evt) =>
         {
+            if(!interactable) return;
             if (!dragging) return;
 
             //set position
@@ -163,6 +167,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
         element.RegisterCallback<PointerUpEvent>((evt) =>
         {
+            if(!interactable) return;
             if (!dragging) return;
             Vector3 finalPosition = ElementPosition(currentIndex);
             element.transform.position = finalPosition;
@@ -291,7 +296,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             //add elements
             for (int i = 0; i < difference; i++)
             {
-                AddElement();
+                added[elementList.Count] = BaseAddElement().value;
             }
         }
         
@@ -357,12 +362,12 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         content.Remove(element);
     }
 
-    public T AddElement(TValue value = default)
+    private T BaseAddElement(TValue value = default)
     {
         ListElement<T, TValue> element = new($"Element {count}");
         element.style.position = Position.Absolute;
         element.style.height = elementSize - elementSpacing;
-        element.field.SetValueWithoutNotify(value);
+        element.field.value = value;
         element.RegisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
         element.SelectStyle(false);
         elementList.Add(element);
@@ -370,14 +375,33 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         ResizeContent();
         SetupDragDrop(element);
         UpdateListData();
-        BroadCastChangeEvent(added: new Dictionary<int, TValue>() { { count - 1, value } });
         return element.field;
+    }
+    
+    public T AddElement(TValue value = default)
+    {
+        var field = BaseAddElement(value);
+        BroadCastChangeEvent(added: new Dictionary<int, TValue>() { { count - 1, value } });
+        return field;
     }
 
     public TValue ValueAt(int id)
     {
         if (id < 0 || id >= count) return default;
         return elementList[id].Value;
+    }
+
+    public T FieldAt(int id)
+    {
+        if (id < 0 || id >= count) return null;
+        return elementList[id].field;
+    }
+
+    public void SetInteractable(bool value)
+    {
+        interactable = value;
+        plusButton.SetEnabled(value);
+        minusButton.SetEnabled(value);
     }
 
     private void UpdateLabels()
@@ -417,7 +441,8 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         UpdateListData();
         if (evt.currentTarget is ListElement<T, TValue> element)
         {
-            BroadCastChangeEvent(changed: new Dictionary<int, ChangeEvent<TValue>>() { { count, evt } });
+            int id = elementList.IndexOf(element);
+            BroadCastChangeEvent(changed: new Dictionary<int, ChangeEvent<TValue>>() { { id, evt } });
         }
     }
 

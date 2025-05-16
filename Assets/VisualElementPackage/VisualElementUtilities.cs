@@ -52,6 +52,7 @@ public static class VisualElementUtilities
         visualElement.style.borderBottomLeftRadius = curvature;
         visualElement.style.borderBottomRightRadius = curvature;
     }
+
     #endregion
 
     public static void SetClickEffect(this VisualElement element, Color defaultColor, Color? hoverColor = null, Color? clickColor = null,
@@ -65,13 +66,13 @@ public static class VisualElementUtilities
 
         element.RegisterCallback<MouseEnterEvent>((evt) =>
         {
-            if (element.pickingMode == PickingMode.Ignore) return;
+            if (element.pickingMode == PickingMode.Ignore || !element.enabledSelf) return;
             //Debug.Log("mouse enter");
             element.style.backgroundColor = highlightColor;
         });
         element.RegisterCallback<MouseLeaveEvent>((evt) =>
         {
-            if (element.pickingMode == PickingMode.Ignore) return;
+            if (element.pickingMode == PickingMode.Ignore || !element.enabledSelf) return;
             //Debug.Log($"mouse leave: {evt.pressedButtons}");
             bool holdingButton = evt.pressedButtons > 0;
             if (holdingButton && evt.currentTarget != element) return;
@@ -80,14 +81,14 @@ public static class VisualElementUtilities
 
         element.RegisterCallback<MouseDownEvent>((evt) =>
         {
-            if (element.pickingMode == PickingMode.Ignore) return;
+            if (element.pickingMode == PickingMode.Ignore || !element.enabledSelf) return;
             element.CaptureMouse();
             element.style.backgroundColor = downColor;
             //Debug.Log("mouse down");
         }, trickleDownClick);
         element.RegisterCallback<MouseUpEvent>((evt) =>
         {
-            if (element.pickingMode == PickingMode.Ignore) return;
+            if (element.pickingMode == PickingMode.Ignore || !element.enabledSelf) return;
             element.ReleaseMouse();
             bool mouseOver = element.ContainsPoint(evt.localMousePosition);
             element.style.backgroundColor = mouseOver ? highlightColor : normalColor;
