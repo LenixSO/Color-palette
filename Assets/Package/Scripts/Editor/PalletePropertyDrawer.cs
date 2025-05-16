@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,7 +13,7 @@ public class PalletePropertyDrawer : Editor
 {
     private ColorPalette palette;
     private VisualElement root;
-    private Foldout colorsRoot;
+    private ListField<ColorReferenceField, Color> colorsRoot;
     private Foldout referencesRoot;
     private PopupWindow Popup;
     private ListField<ObjectField, Object> folders;
@@ -47,32 +48,19 @@ public class PalletePropertyDrawer : Editor
         folders.RegisterCallback<CollectionChangeEvent<Object>>(UpdatePrefabFolders);
         root.Add(folders);
 
-        ListField<ColorReferenceField, Color> colorRef = new();
-        colorRef.AddElement(Color.white);
-        root.Add(colorRef);
-        ListField<VisualColorField<Graphic>, Graphic> colorList = new();
-        colorList.AddElement(null).SetReferenceColor(0, Color.white);
-        colorList.AddElement(null).SetReferenceColor(0, Color.black);
-        colorList.AddElement(null).SetReferenceColor(0, Color.gray);
-        colorList.AddElement(null).SetReferenceColor(0, Color.red);
-        colorList.AddElement(null).SetReferenceColor(0, Color.green);
-        colorList.AddElement(null).SetReferenceColor(0, Color.blue);
-        colorList.AddElement(null).SetReferenceColor(0, Color.cyan);
-        colorList.AddElement(null).SetReferenceColor(0, Color.magenta);
-        colorList.AddElement(null).SetReferenceColor(0, Color.yellow);
-        root.Add(colorList);
-
-        colorsRoot = new Foldout();
-        colorsRoot.text = "Colors";
+        colorsRoot = new("Colors");
+        //colorsRoot.text = "Colors";
         colorsRoot.style.top = 5;
         root.Add(colorsRoot);
-        UpdatePalette();
+        SetupColors();
+        //UpdatePalette();
 
         referencesRoot = new Foldout();
         referencesRoot.text = "Component References";
         referencesRoot.style.top = 5;
         root.Add(referencesRoot);
-        UpdateProjectElements();
+        SetupReferences();
+        //UpdateProjectElements();
 
         Button apply = new();
         apply.style.top = 5;
@@ -98,6 +86,83 @@ public class PalletePropertyDrawer : Editor
         }
 
         palette.searchFolders = searchFolders;
+    }
+
+    private void SetupColors()
+    {
+        colorsRoot.SetInteractable(false);
+        colorsRoot.RegisterCallback<CollectionChangeEvent<Color>>(OnColorsChanged);
+        for (int i = 0; i < palette.Colors.Count; i++)
+        {
+            var element = colorsRoot.AddElement(palette.Colors[i]);
+            element.ReferenceCount = GetReferenceCount(i);
+        }
+    }
+
+    private IEnumerable<int> GraphicsOf(int id) =>
+        from g in palette.graphicsLookUp where g == id select g;
+    private IEnumerable<int> RenderersOf(int id) =>
+        from g in palette.graphicsLookUp where g == id select g;
+
+    private int GetReferenceCount(int id)
+    {
+        var graphics = GraphicsOf(id);
+        var renderers = RenderersOf(id);
+        return graphics.Count() + renderers.Count();
+    }
+
+    private void OnColorsChanged(CollectionChangeEvent<Color> evt)
+    {
+        //add colors to list
+        for (int i = 0; i < evt.addedValues.Count; i++) palette.Colors.Add(default);
+        foreach (var addedValue in evt.addedValues)
+        {
+            palette.Colors[addedValue.Key] = addedValue.Value;
+        }
+        
+        //update colors on references
+        foreach (var changedValue in evt.changedValues)
+        {
+            int id = changedValue.Key;
+            var element = colorsRoot.FieldAt(id);
+            var graphics = GraphicsOf(id);
+            var renderers = RenderersOf(id);
+            palette.Colors[id] = changedValue.Value.newValue;
+        }
+        
+        //remove old references
+        foreach (var removedValue in evt.removedValues)
+        {
+            
+        }
+    }
+
+    private void SetupReferences()
+    {
+        //graphics list
+        ListField<VisualColorField<Graphic>, Graphic> graphicField = new("Graphics");
+        graphicField.SetInteractable(false);
+        for (int i = 0; i < palette.Graphics.Count(); i++)
+        {
+            var element = graphicField.AddElement(palette.Graphics[i]);
+            int id = palette.graphicsLookUp[i];
+            element.SetReferenceColor(id, palette.Colors[id]);
+            element.SetInteractable(false);
+            //element.onColorClicked += ColorsPopup;
+        }
+        referencesRoot.Add(graphicField);
+
+        //spriterender list
+    }
+
+    private void OnGraphicsChanged(int colorId, Graphic graphic)
+    {
+        
+    }
+
+    private void OnRenderersChanged(int colorId, SpriteRenderer renderer)
+    {
+        
     }
     
     private void ReadProjectElements()
