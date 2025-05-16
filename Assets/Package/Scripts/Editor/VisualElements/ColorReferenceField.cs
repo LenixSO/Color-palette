@@ -7,8 +7,19 @@ using UnityEngine.UIElements;
 
 public class ColorReferenceField : BaseField<Color>
 {
-    private VisualElement content;
     private ColorField colorField;
+
+    private int count;
+
+    public int ReferenceCount
+    {
+        get => count;
+        set
+        {
+            count = value;
+            colorField.label = count.ToString();
+        }
+    }
     
     public override Color value
     {
@@ -16,40 +27,22 @@ public class ColorReferenceField : BaseField<Color>
         set => colorField.value = value;
     }
 
-    public event Action onXClicked;
-
     public ColorReferenceField() : this("ColorField"){}
     public ColorReferenceField(string label) : base(label, null)
     {
-        contentContainer.style.backgroundColor = ColorExtension.GrayShade(.2f);
-        labelElement.style.backgroundColor = ColorExtension.GrayShade(.4f);
-        content = new();
-        content.style.backgroundColor = ColorExtension.GrayShade(.6f);
-        content.style.flexDirection = FlexDirection.Row;
-        //content.style.flexShrink = 1f;
-        contentContainer.Add(content);
+        contentContainer.style.flexDirection = FlexDirection.Row;
+        contentContainer.style.flexBasis = .5f;
+        contentContainer.style.alignSelf = Align.Center;
         style.flexDirection = FlexDirection.Row;
-
-        Button b = new Button();
-        b.style.width = 20;
-        b.text = "X";
-        b.clicked += XClicked;
-        content.Add(b);
             
-        colorField = new ColorField();
+        colorField = new ColorField("0");
         colorField.value = Color.white;
-        colorField.style.flexShrink = 1f;
-        colorField.RegisterCallback<ChangeEvent<Color>>(ColorChanged);
-        content.Add(colorField);
-    }
-
-    private void XClicked()
-    {
-        onXClicked?.Invoke();
-    }
-
-    private void ColorChanged(ChangeEvent<Color> evt)
-    {
-        
+        colorField.style.borderRightWidth = 20;
+        colorField.style.maxWidth = 220;
+        colorField.style.alignItems = Align.FlexEnd;
+        colorField.style.flexGrow = 1;
+        colorField.labelElement.style.minWidth = 20;
+        colorField.labelElement.style.unityTextAlign = TextAnchor.MiddleRight;
+        contentContainer.Add(colorField);
     }
 }

@@ -357,7 +357,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         content.Remove(element);
     }
 
-    public void AddElement(TValue value = default)
+    public T AddElement(TValue value = default)
     {
         ListElement<T, TValue> element = new($"Element {count}");
         element.style.position = Position.Absolute;
@@ -371,6 +371,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         SetupDragDrop(element);
         UpdateListData();
         BroadCastChangeEvent(added: new Dictionary<int, TValue>() { { count - 1, value } });
+        return element.field;
     }
 
     public TValue ValueAt(int id)

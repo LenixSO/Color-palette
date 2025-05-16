@@ -50,6 +50,17 @@ public class PalletePropertyDrawer : Editor
         ListField<ColorReferenceField, Color> colorRef = new();
         colorRef.AddElement(Color.white);
         root.Add(colorRef);
+        ListField<VisualColorField<Graphic>, Graphic> colorList = new();
+        colorList.AddElement(null).SetReferenceColor(0, Color.white);
+        colorList.AddElement(null).SetReferenceColor(0, Color.black);
+        colorList.AddElement(null).SetReferenceColor(0, Color.gray);
+        colorList.AddElement(null).SetReferenceColor(0, Color.red);
+        colorList.AddElement(null).SetReferenceColor(0, Color.green);
+        colorList.AddElement(null).SetReferenceColor(0, Color.blue);
+        colorList.AddElement(null).SetReferenceColor(0, Color.cyan);
+        colorList.AddElement(null).SetReferenceColor(0, Color.magenta);
+        colorList.AddElement(null).SetReferenceColor(0, Color.yellow);
+        root.Add(colorList);
 
         colorsRoot = new Foldout();
         colorsRoot.text = "Colors";
@@ -74,6 +85,10 @@ public class PalletePropertyDrawer : Editor
 
     private void UpdatePrefabFolders(CollectionChangeEvent<Object> evt)
     {
+        foreach (var changedValue in evt.changedValues.Values)
+        {
+            Debug.Log($"{changedValue.newValue} (was {changedValue.previousValue})");
+        }
         //Debug.Log("update");
         string[] searchFolders = new string[folders.count];
         for (int i = 0; i < searchFolders.Length; i++)
