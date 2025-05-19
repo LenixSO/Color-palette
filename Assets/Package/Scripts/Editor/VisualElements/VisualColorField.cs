@@ -13,6 +13,12 @@ public class VisualColorField<T> : BaseField<T> where T: Object
 
     public Action<int> onColorClicked;
     public Action<int, T> onReferenceChanged;
+
+    public override T value
+    {
+        get => (T)objectField.value;
+        set => objectField.value = value;
+    }
     
     public VisualColorField() : this("VisualColorField"){}
     public VisualColorField(string label) : base(label, null)

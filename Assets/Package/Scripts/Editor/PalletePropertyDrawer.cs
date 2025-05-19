@@ -129,11 +129,13 @@ public class PalletePropertyDrawer : Editor
             Color newColor = changedValue.Value.newValue;
             palette.Colors[id] = newColor;
             var graphics = GraphicsOf(id);
-            foreach (int graphicId in graphics)
+            for (int i = 0; i < palette.Graphics.Count; i++)
             {
-                palette.Graphics[graphicId].color = newColor;
-                graphicList.FieldAt(graphicId).SetReferenceColor(id, newColor);
+                if (palette.graphicsLookUp[i] != id) continue;
+                palette.Graphics[i].color = newColor;
+                graphicList.FieldAt(i).SetReferenceColor(id, newColor);
             }
+            
             var renderers = RenderersOf(id);
         }
         
@@ -149,17 +151,23 @@ public class PalletePropertyDrawer : Editor
         //graphics list
         graphicList = new("Graphics");
         graphicList.SetInteractable(false);
-        for (int i = 0; i < palette.Graphics.Count(); i++)
+        for (int i = 0; i < palette.Graphics.Count; i++)
         {
             var element = graphicList.AddElement(palette.Graphics[i]);
+            element.value = palette.Graphics[i];
+            element.SetInteractable(false);
             int id = palette.graphicsLookUp[i];
             element.SetReferenceColor(id, palette.Colors[id]);
-            element.SetInteractable(false);
             //element.onColorClicked += ColorsPopup;
         }
         referencesRoot.Add(graphicList);
 
         //spriterender list
+    }
+
+    private void OnGaphicsListChanged(CollectionChangeEvent<Graphic> evt)
+    {
+        
     }
 
     private void OnGraphicsChanged(int colorId, Graphic graphic)
