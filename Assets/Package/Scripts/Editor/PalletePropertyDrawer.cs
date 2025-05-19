@@ -17,6 +17,8 @@ public class PalletePropertyDrawer : Editor
     private Foldout referencesRoot;
     private PopupWindow Popup;
     private ListField<ObjectField, Object> folders;
+    private ListField<VisualColorField<Graphic>, Graphic> graphicList;
+    private ListField<VisualColorField<SpriteRenderer>, SpriteRenderer> rendererList;
 
     public override VisualElement CreateInspectorGUI()
     {
@@ -102,7 +104,7 @@ public class PalletePropertyDrawer : Editor
     private IEnumerable<int> GraphicsOf(int id) =>
         from g in palette.graphicsLookUp where g == id select g;
     private IEnumerable<int> RenderersOf(int id) =>
-        from g in palette.graphicsLookUp where g == id select g;
+        from r in palette.renderersLookUp where r == id select r;
 
     private int GetReferenceCount(int id)
     {
@@ -124,10 +126,15 @@ public class PalletePropertyDrawer : Editor
         foreach (var changedValue in evt.changedValues)
         {
             int id = changedValue.Key;
-            var element = colorsRoot.FieldAt(id);
+            Color newColor = changedValue.Value.newValue;
+            palette.Colors[id] = newColor;
             var graphics = GraphicsOf(id);
+            foreach (int graphicId in graphics)
+            {
+                palette.Graphics[graphicId].color = newColor;
+                graphicList.FieldAt(graphicId).SetReferenceColor(id, newColor);
+            }
             var renderers = RenderersOf(id);
-            palette.Colors[id] = changedValue.Value.newValue;
         }
         
         //remove old references
@@ -140,17 +147,17 @@ public class PalletePropertyDrawer : Editor
     private void SetupReferences()
     {
         //graphics list
-        ListField<VisualColorField<Graphic>, Graphic> graphicField = new("Graphics");
-        graphicField.SetInteractable(false);
+        graphicList = new("Graphics");
+        graphicList.SetInteractable(false);
         for (int i = 0; i < palette.Graphics.Count(); i++)
         {
-            var element = graphicField.AddElement(palette.Graphics[i]);
+            var element = graphicList.AddElement(palette.Graphics[i]);
             int id = palette.graphicsLookUp[i];
             element.SetReferenceColor(id, palette.Colors[id]);
             element.SetInteractable(false);
             //element.onColorClicked += ColorsPopup;
         }
-        referencesRoot.Add(graphicField);
+        referencesRoot.Add(graphicList);
 
         //spriterender list
     }
