@@ -30,4 +30,10 @@ public static class ColorExtension
 
         return invertedColor;
     }
+    
+    public static Color ContrastGray(Color color)
+    {
+        float anchor = (1 - color.g) * 2 - (color.b + color.r);
+        return GrayShade(anchor);
+    }
 }

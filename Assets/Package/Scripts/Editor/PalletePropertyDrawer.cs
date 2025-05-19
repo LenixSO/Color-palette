@@ -148,6 +148,7 @@ public class PalletePropertyDrawer : Editor
 
     private void SetupReferences()
     {
+        referencesRoot.Clear();
         //graphics list
         graphicList = new("Graphics");
         graphicList.SetInteractable(false);
@@ -158,16 +159,97 @@ public class PalletePropertyDrawer : Editor
             element.SetInteractable(false);
             int id = palette.graphicsLookUp[i];
             element.SetReferenceColor(id, palette.Colors[id]);
-            //element.onColorClicked += ColorsPopup;
+            element.onColorClicked += ChoseColorPopup;
         }
         referencesRoot.Add(graphicList);
 
         //spriterender list
     }
 
-    private void OnGaphicsListChanged(CollectionChangeEvent<Graphic> evt)
+    private void ChoseColorPopup(VisualColorField<Graphic> graphicReference)
     {
-        
+        if(Popup != null) ClosePopup();
+
+        List<int> lookup = palette.graphicsLookUp;
+        int currentId = palette.Graphics.IndexOf(graphicReference.value);
+        if(currentId >= lookup.Count)
+        {
+            currentId -= lookup.Count;
+            lookup = palette.renderersLookUp;
+        }
+
+        Popup = new PopupWindow();
+        Popup.RegisterCallback<FocusOutEvent>((evt) =>
+        {
+            bool isChild = false;
+            VisualElement element = Popup.ElementAt(0);
+            int childs = Popup.ElementAt(0).childCount;
+            for (int i = 0; i < childs; i++)
+            {
+                if (element.ElementAt(i) == evt.relatedTarget)
+                {
+                    isChild = true;
+                    break;
+                }
+            }
+
+            if (!isChild) ClosePopup();
+        });
+
+        VisualElement button = graphicReference.idLabel;
+        Vector3 position = button.worldTransform.GetPosition() + (Vector3)(button.worldBound.size * .5f);
+        position -= root.worldTransform.GetPosition();
+        Popup.transform.position = position;
+
+        Popup.text = "Colors";
+        Popup.style.backgroundColor = ColorExtension.GrayShade(.2f);
+        Popup.style.position = Position.Absolute;
+        Popup.style.flexBasis = root.worldBound.width - position.x;
+        Popup.style.width = root.worldBound.width - position.x;
+
+        VisualElement window = new VisualElement();
+        window.style.flexDirection = FlexDirection.Row;
+        window.style.flexWrap = Wrap.Wrap;
+        Popup.Add(window);
+
+        for (int i = 0; i < palette.Colors.Count; i++)
+        {
+            bool currentSelected = i == palette.graphicsLookUp[currentId];
+            int colorID = i;
+            Button color = new Button();
+            color.name = "color pick";
+            color.SetBorder(currentSelected ? 1.5f : 1, borderColor: Color.white);
+            color.text = currentSelected ? "-" : "";
+            color.style.color = ColorExtension.ContrastGray(palette.Colors[i]);
+            color.style.left = 8;
+            color.style.width = 20;
+            color.style.height = 20;
+            color.style.backgroundColor = palette.Colors[colorID];
+            color.clicked += () =>
+            {
+                UpdateGraphicElementReference(graphicReference, colorID);
+                //lookup[currentId] = colorID;
+                //UpdateProjectElements();
+                ClosePopup();
+            };
+            window.Add(color);
+        }
+
+        root.Add(Popup);
+        Popup.FocusElement(true);
+    }
+
+    private void UpdateGraphicElementReference(VisualColorField<Graphic> graphic, int newId)
+    {
+        int graphicId = palette.Graphics.IndexOf(graphic.value);
+        int oldId = palette.graphicsLookUp[graphicId];
+        palette.graphicsLookUp[graphicId] = newId;
+
+        var reference = graphicList.FieldAt(graphicId);
+        reference.SetReferenceColor(newId, palette.Colors[newId]);
+
+        colorsRoot.FieldAt(oldId).ReferenceCount--;
+        colorsRoot.FieldAt(newId).ReferenceCount++;
     }
 
     private void OnGraphicsChanged(int colorId, Graphic graphic)

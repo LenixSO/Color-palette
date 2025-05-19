@@ -7,11 +7,11 @@ using Object = UnityEngine.Object;
 public class VisualColorField<T> : BaseField<T> where T: Object
 {
     private ObjectField objectField;
-    private Button idLabel;
+    public Button idLabel { get; private set; }
 
     private int colorId;
 
-    public Action<int> onColorClicked;
+    public Action<VisualColorField<T>> onColorClicked;
     public Action<int, T> onReferenceChanged;
 
     public override T value
@@ -40,23 +40,22 @@ public class VisualColorField<T> : BaseField<T> where T: Object
         idLabel.SetBorder(1.5f, 2f, Color.black);
         idLabel.style.width = 22;
         idLabel.style.minWidth = 22;
-        idLabel.style.unityTextAlign = TextAnchor.LowerCenter;
+        idLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
         contentContainer.Insert(1,idLabel);
         contentContainer.Add(objectField);
     }
 
     private void IdClicked()
     {
-        onColorClicked?.Invoke(colorId);
+        onColorClicked?.Invoke(this);
     }
 
     public void SetReferenceColor(int id, Color color)
     {
         colorId = id;
-        idLabel.text = id.ToString();
+        idLabel.text = $"<b>{id}";
         idLabel.style.backgroundColor = color;
-        float anchor = (1 - color.g) * 2 - (color.b + color.r);
-        idLabel.style.color = ColorExtension.GrayShade(anchor);
+        idLabel.style.color = ColorExtension.ContrastGray(color);
         onReferenceChanged?.Invoke(colorId, (T)objectField.value);
     }
 
