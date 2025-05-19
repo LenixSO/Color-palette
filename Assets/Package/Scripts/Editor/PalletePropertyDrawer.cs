@@ -229,8 +229,6 @@ public class PalletePropertyDrawer : Editor
             color.clicked += () =>
             {
                 UpdateGraphicElementReference(graphicReference, colorID);
-                //lookup[currentId] = colorID;
-                //UpdateProjectElements();
                 ClosePopup();
             };
             window.Add(color);
@@ -251,16 +249,6 @@ public class PalletePropertyDrawer : Editor
 
         colorsRoot.FieldAt(oldId).ReferenceCount--;
         colorsRoot.FieldAt(newId).ReferenceCount++;
-    }
-
-    private void OnGraphicsChanged(int colorId, Graphic graphic)
-    {
-        
-    }
-
-    private void OnRenderersChanged(int colorId, SpriteRenderer renderer)
-    {
-        
     }
     
     private void ReadProjectElements()
