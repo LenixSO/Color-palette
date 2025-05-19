@@ -219,7 +219,8 @@ public class PalletePropertyDrawer : Editor
             Button color = new Button();
             color.name = "color pick";
             color.SetBorder(currentSelected ? 1.5f : 1, borderColor: Color.white);
-            color.text = currentSelected ? "-" : "";
+            color.text = currentSelected ? "<b>-" : "";
+            color.style.fontSize = 25;
             color.style.color = ColorExtension.ContrastGray(palette.Colors[i]);
             color.style.left = 8;
             color.style.width = 20;
