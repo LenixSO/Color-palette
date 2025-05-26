@@ -24,13 +24,6 @@ public class PalletePropertyDrawer : Editor
     {
         palette = target as ColorPalette;
         EditorUtility.SetDirty(palette);
-        /*
-        palette.Colors.Clear();
-        palette.Graphics.Clear();
-        palette.graphicsLookUp= new();
-        palette.Renderers.Clear();
-        palette.renderersLookUp.Clear();
-        */
         root = new();
         root.name = "root";
         if (palette == null) return root;
@@ -74,7 +67,38 @@ public class PalletePropertyDrawer : Editor
         apply.clicked += ApplyPaletteChanges;
         root.Add(apply);
         
+        SetupColorsPopup();
+        
         return root;
+    }
+
+    private void SetupColorsPopup()
+    {
+        Popup ??= new PopupWindow();
+        Popup.text = "Colors";
+        Popup.style.backgroundColor = ColorExtension.GrayShade(.2f);
+        Popup.style.position = Position.Absolute;
+        Popup.RegisterCallback<FocusOutEvent>((evt) =>
+        {
+            bool isChild = false;
+            VisualElement element = Popup.ElementAt(0);
+            int children = Popup.ElementAt(0).childCount;
+            for (int i = 0; i < children; i++)
+            {
+                if (element.ElementAt(i) == evt.relatedTarget)
+                {
+                    isChild = true;
+                    break;
+                }
+            }
+
+            if (!isChild) CloseColorsPopup();
+        });
+
+        VisualElement window = new VisualElement();
+        window.style.flexDirection = FlexDirection.Row;
+        window.style.flexWrap = Wrap.Wrap;
+        Popup.Add(window);
     }
     
     private void ReadProjectElements()
@@ -174,9 +198,7 @@ public class PalletePropertyDrawer : Editor
         //add colors to list
         for (int i = 0; i < evt.addedValues.Count; i++) palette.Colors.Add(default);
         foreach (var addedValue in evt.addedValues)
-        {
             palette.Colors[addedValue.Key] = addedValue.Value;
-        }
 
         //update colors on references
         foreach (var changedValue in evt.changedValues)
@@ -184,7 +206,7 @@ public class PalletePropertyDrawer : Editor
             int id = changedValue.Key;
             Color newColor = changedValue.Value.newValue;
             palette.Colors[id] = newColor;
-            var graphics = GraphicsOf(id);
+            //Graphic
             for (int i = 0; i < palette.Graphics.Count; i++)
             {
                 if (palette.graphicsLookUp[i] != id) continue;
@@ -192,7 +214,7 @@ public class PalletePropertyDrawer : Editor
                 graphicList?.FieldAt(i)?.SetReferenceColor(id, newColor);
             }
 
-            var renderers = RenderersOf(id);
+            //SpriteRender
         }
 
         //remove old references
@@ -221,69 +243,23 @@ public class PalletePropertyDrawer : Editor
 
     private void ChoseColorPopup(VisualColorField<Graphic> graphicReference)
     {
-        if (Popup != null) CloseColorsPopup();
-
-        List<int> lookup = palette.graphicsLookUp;
         int currentId = palette.Graphics.IndexOf(graphicReference.value);
-        if (currentId >= lookup.Count)
-        {
-            currentId -= lookup.Count;
-            lookup = palette.renderersLookUp;
-        }
 
-        Popup = new PopupWindow();
-        Popup.RegisterCallback<FocusOutEvent>((evt) =>
-        {
-            bool isChild = false;
-            VisualElement element = Popup.ElementAt(0);
-            int childs = Popup.ElementAt(0).childCount;
-            for (int i = 0; i < childs; i++)
-            {
-                if (element.ElementAt(i) == evt.relatedTarget)
-                {
-                    isChild = true;
-                    break;
-                }
-            }
-
-            if (!isChild) CloseColorsPopup();
-        });
-
-        VisualElement button = graphicReference.idLabel;
-        Vector3 position = button.worldTransform.GetPosition() + (Vector3)(button.worldBound.size * .5f);
+        VisualElement clickedReference = graphicReference.idLabel;
+        Vector3 position = clickedReference.worldTransform.GetPosition() + (Vector3)(clickedReference.worldBound.size * .5f);
         position -= root.worldTransform.GetPosition();
         Popup.transform.position = position;
-
-        Popup.text = "Colors";
-        Popup.style.backgroundColor = ColorExtension.GrayShade(.2f);
-        Popup.style.position = Position.Absolute;
         Popup.style.flexBasis = root.worldBound.width - position.x;
         Popup.style.width = root.worldBound.width - position.x;
 
-        VisualElement window = new VisualElement();
-        window.style.flexDirection = FlexDirection.Row;
-        window.style.flexWrap = Wrap.Wrap;
-        Popup.Add(window);
-
+        VisualElement window = Popup[0];
+        window.Clear();
         for (int i = 0; i < palette.Colors.Count; i++)
         {
             bool currentSelected = i == palette.graphicsLookUp[currentId];
             int colorID = i;
-            Button color = new Button();
-            color.name = "color pick";
-            color.SetBorder(currentSelected ? 1.5f : 1, borderColor: Color.white);
-            color.text = currentSelected ? "<b>-" : "";
-            color.style.fontSize = 25;
-            color.style.color = ColorExtension.ContrastGray(palette.Colors[i]);
-            color.style.left = 8;
-            color.style.width = 20;
-            color.style.height = 20;
-            color.style.backgroundColor = palette.Colors[colorID];
-            color.clicked += () =>
-            {
-                UpdateGraphicElementReference(graphicReference, colorID);
-                CloseColorsPopup();
-            };
+            Button color = ColorButton(currentSelected, colorID, graphicReference, 
+                palette.Graphics, palette.graphicsLookUp, graphicList);
             window.Add(color);
         }
 
@@ -293,17 +269,39 @@ public class PalletePropertyDrawer : Editor
 
     private void CloseColorsPopup()
     {
+        if (!root.Contains(Popup)) return;
         root.Remove(Popup);
-        Popup = null;
     }
 
-    private void UpdateGraphicElementReference(VisualColorField<Graphic> graphic, int newId)
+    private Button ColorButton<T>(bool selected, int colorId, VisualColorField<T> element,
+        List<T> references, List<int> lookup, ListField<VisualColorField<T>, T> list) where T : Object
     {
-        int graphicId = palette.Graphics.IndexOf(graphic.value);
-        int oldId = palette.graphicsLookUp[graphicId];
-        palette.graphicsLookUp[graphicId] = newId;
+        Button button = new Button();
+        button.name = "color pick";
+        button.SetBorder(selected ? 1.5f : 1, borderColor: Color.white);
+        button.text = selected ? "<b>-" : "";
+        button.style.fontSize = 25;
+        button.style.color = ColorExtension.ContrastGray(palette.Colors[colorId]);
+        button.style.left = 8;
+        button.style.width = 20;
+        button.style.height = 20;
+        button.style.backgroundColor = palette.Colors[colorId];
+        button.clicked += () =>
+        {
+            UpdateElementReference(colorId, element, references, lookup, list);
+            CloseColorsPopup();
+        };
+        return button;
+    }
 
-        var reference = graphicList.FieldAt(graphicId);
+    private void UpdateElementReference<T>(int newId, VisualColorField<T> element, 
+        List<T> references, List<int> lookup, ListField<VisualColorField<T>, T> list) where T : Object
+    {
+        int graphicId = references.IndexOf(element.value);
+        int oldId = lookup[graphicId];
+        lookup[graphicId] = newId;
+
+        var reference = list.FieldAt(graphicId);
         reference.SetReferenceColor(newId, palette.Colors[newId]);
 
         colorsRoot.FieldAt(oldId).ReferenceCount--;
@@ -330,7 +328,6 @@ public class PalletePropertyDrawer : Editor
         PrefabUtility.SavePrefabAsset(prefab);
         AssetDatabase.Refresh();
     }
-    
     private void ApplyElementColor(SpriteRenderer element)
     {
         string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(element);
