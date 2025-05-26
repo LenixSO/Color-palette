@@ -358,8 +358,22 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private void RemoveTargetElement(ListElement<T, TValue> element)
     {
         element.UnregisterCallback<ChangeEvent<TValue>>(ElementValueChanged);
-        elementList.Remove(element);
         content.Remove(element);
+        elementList.Remove(element);
+    }
+
+    public void ClearList()
+    {
+        Dictionary<int, TValue> removed = new();
+        int elementCount = elementList.Count;
+        for (int i = 0; i < elementCount; i++)
+        {
+            var element = elementList[0];
+            removed[i] = element.Value;
+            RemoveTargetElement(element);
+        }
+        ResizeContent();
+        BroadCastChangeEvent(removed: removed);
     }
 
     private T BaseAddElement(TValue value = default)
@@ -400,6 +414,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     public void SetInteractable(bool value)
     {
         interactable = value;
+        countField.SetEnabled(value);
         plusButton.SetEnabled(value);
         minusButton.SetEnabled(value);
     }
