@@ -16,10 +16,10 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     private List<ListElement<T, TValue>> elementList = new();
     private IntegerField countField;
     private List<ListElement<T, TValue>> selectedElements = new();
+    private bool interactable = true;
 
     public int count => elementList.Count;
-
-    private bool interactable = true;
+    public bool Interactable => interactable;
 
     #region Preset
     //Style parameters
@@ -87,7 +87,6 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
             if (selectedElements.Count <= 0 || (!evt.ctrlKey && !evt.shiftKey))
             {
                 ClearSelectedElements();
-
                 selectedElements.Add(element);
                 containsElement = true;
             }
@@ -263,6 +262,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
         
         content.RegisterCallback<BlurEvent>(evt =>
         {
+            if(evt.relatedTarget == minusButton) return;
             //clear selected elements
             for (int i = 0; i < selectedElements.Count; i++)
             {
