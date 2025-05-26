@@ -66,20 +66,22 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
         element.RegisterCallback<PointerDownEvent>((evt) =>
         {
-            if(!interactable) return;
-            //setup values
-            totalArea = (element.localBound.height * (elementList.Count - 1)) + (element.localBound.height / 2f);
-            initialPosition = element.transform.position;
-            indexOffset = 0;
-            originIndex = elementList.IndexOf(element);
-            currentIndex = originIndex;
-            dragging = true;
+            if (interactable)
+            {
+                //setup values
+                totalArea = (element.localBound.height * (elementList.Count - 1)) + (element.localBound.height / 2f);
+                initialPosition = element.transform.position;
+                indexOffset = 0;
+                originIndex = elementList.IndexOf(element);
+                currentIndex = originIndex;
+                dragging = true;
 
-            //alter element
-            element.BringToFront();
-            element.CapturePointer(evt.pointerId);
-            for (int i = 0; i < elementList.Count; i++)
-                elementList[i].pickingMode = PickingMode.Ignore;
+                //alter element
+                element.BringToFront();
+                element.CapturePointer(evt.pointerId);
+                for (int i = 0; i < elementList.Count; i++)
+                    elementList[i].pickingMode = PickingMode.Ignore;
+            }
 
             bool containsElement = selectedElements.Contains(element);
             if (selectedElements.Count <= 0 || (!evt.ctrlKey && !evt.shiftKey))
@@ -167,35 +169,36 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
 
         element.RegisterCallback<PointerUpEvent>((evt) =>
         {
-            if(!interactable) return;
-            if (!dragging) return;
-            Vector3 finalPosition = ElementPosition(currentIndex);
-            element.transform.position = finalPosition;
-            
-            if (currentIndex != originIndex)
+            if (interactable)
             {
-                //adjust indexes
-                indexOffset = Mathf.Clamp(currentIndex - originIndex, -1, 1);
-                elementList.Insert(currentIndex + Mathf.Clamp(indexOffset, 0, 1),
-                    element); //insert at +1 if origin is before current
-                elementList.RemoveAt(originIndex -
-                                     Mathf.Clamp(indexOffset, -1, 0)); //remove at +1 if origin is after current
+                if (!dragging) return;
+                Vector3 finalPosition = ElementPosition(currentIndex);
+                element.transform.position = finalPosition;
 
-                //create change list
-                int min = Mathf.Min(currentIndex, originIndex);
-                int max = Mathf.Max(currentIndex, originIndex);
-                Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
-                CheckChanges(min, max, -indexOffset, valuesChanged);
+                if (currentIndex != originIndex)
+                {
+                    //adjust indexes
+                    indexOffset = Mathf.Clamp(currentIndex - originIndex, -1, 1);
+                    elementList.Insert(currentIndex + Mathf.Clamp(indexOffset, 0, 1),
+                        element); //insert at +1 if origin is before current
+                    elementList.RemoveAt(originIndex -
+                                         Mathf.Clamp(indexOffset, -1, 0)); //remove at +1 if origin is after current
 
-                //adjust labels
-                UpdateLabels();
+                    //create change list
+                    int min = Mathf.Min(currentIndex, originIndex);
+                    int max = Mathf.Max(currentIndex, originIndex);
+                    Dictionary<int, ChangeEvent<TValue>> valuesChanged = new();
+                    CheckChanges(min, max, -indexOffset, valuesChanged);
 
-                BroadCastChangeEvent(changed: valuesChanged);
+                    //adjust labels
+                    UpdateLabels();
+
+                    BroadCastChangeEvent(changed: valuesChanged);
+                }
+
+                //enable interaction again
+                for (int i = 0; i < elementList.Count; i++) elementList[i].pickingMode = PickingMode.Position;
             }
-
-            //enable interaction again
-            for (int i = 0; i < elementList.Count; i++)
-                elementList[i].pickingMode = PickingMode.Position;
 
             element.ReleasePointer(evt.pointerId);
             content.FocusElement(true);
@@ -414,6 +417,7 @@ public class ListField<T, TValue> : VisualElement where T : BaseField<TValue>
     public void SetInteractable(bool value)
     {
         interactable = value;
+        
         countField.SetEnabled(value);
         plusButton.SetEnabled(value);
         minusButton.SetEnabled(value);
