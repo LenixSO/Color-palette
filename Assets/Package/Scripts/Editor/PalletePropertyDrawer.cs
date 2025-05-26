@@ -221,7 +221,8 @@ public class PalletePropertyDrawer : Editor
         foreach (var removedValue in evt.removedValues)
         {
             palette.Colors.Remove(removedValue.Value);
-            //update references?
+            //removed references becomes the closest new color (change color, keep id if possible)
+            //keep non deleted references (change its id to keep the color)
         }
     }
 
