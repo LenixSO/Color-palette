@@ -47,6 +47,8 @@ public class PalletePropertyDrawer : Editor
         colorsRoot = new("Colors");
         colorsRoot.style.top = 5;
         colorsRoot.SetInteractable(false);
+        colorsRoot.plusButton.SetEnabled(true);
+        colorsRoot.minusButton.SetEnabled(true);
         root.Add(colorsRoot);
         SetupColors();
         colorsRoot.RegisterCallback<CollectionChangeEvent<Color>>(OnColorsChanged);
@@ -154,12 +156,6 @@ public class PalletePropertyDrawer : Editor
 
     private void UpdatePrefabFolders(CollectionChangeEvent<Object> evt)
     {
-        foreach (var changedValue in evt.changedValues.Values)
-        {
-            Debug.Log($"{changedValue.newValue} (was {changedValue.previousValue})");
-        }
-
-        //Debug.Log("update");
         string[] searchFolders = new string[folders.count];
         for (int i = 0; i < searchFolders.Length; i++)
         {
@@ -209,6 +205,7 @@ public class PalletePropertyDrawer : Editor
             //Graphic
             for (int i = 0; i < palette.Graphics.Count; i++)
             {
+        //fix gray area on very particular colors
                 if (palette.graphicsLookUp[i] != id) continue;
                 palette.Graphics[i].color = newColor;
                 graphicList?.FieldAt(i)?.SetReferenceColor(id, newColor);
