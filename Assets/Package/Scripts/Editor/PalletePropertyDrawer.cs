@@ -177,7 +177,7 @@ public class PalletePropertyDrawer : Editor
     }
 
     private IEnumerable<int> GraphicsOf(int id) =>
-        from g in palette.graphicsLookUp where g == id select g;
+        from g in palette.graphicsLookUp where g == id select palette.graphicsLookUp.IndexOf(g);
 
     private IEnumerable<int> RenderersOf(int id) =>
         from r in palette.renderersLookUp where r == id select r;
@@ -202,6 +202,13 @@ public class PalletePropertyDrawer : Editor
             int id = changedValue.Key;
             Color newColor = changedValue.Value.newValue;
             palette.Colors[id] = newColor;
+
+            if(evt.removedValues.Count > 0) //values changed because of removal
+            {
+                id = Mathf.Max(id - 1, 0);
+                newColor = palette.Colors[id];
+            }
+
             //Graphic
             for (int i = 0; i < palette.Graphics.Count; i++)
             {
@@ -214,12 +221,24 @@ public class PalletePropertyDrawer : Editor
             //SpriteRender
         }
 
+        //removed references becomes the closest new color (change color, keep id if possible)
+        //keep non deleted references (change its id to keep the color)
         //remove old references
         foreach (var removedValue in evt.removedValues)
         {
+            int newKey = Mathf.Max(removedValue.Key - 1, 0);
+            Color newColor = palette.Colors[newKey];
+
+            //graphics
+            var graphicsId = GraphicsOf(removedValue.Key).GetEnumerator();
+            //copy values
+            List<int> keys = new();
+            while (graphicsId.MoveNext()) keys.Add(graphicsId.Current);
+            for (int i = 0; i < keys.Count; i++)
+                UpdateElementReference(newKey, graphicList.FieldAt(keys[i]), palette.Graphics, palette.graphicsLookUp, graphicList);
+            //renderers
+
             palette.Colors.Remove(removedValue.Value);
-            //removed references becomes the closest new color (change color, keep id if possible)
-            //keep non deleted references (change its id to keep the color)
         }
     }
 
@@ -302,7 +321,8 @@ public class PalletePropertyDrawer : Editor
         var reference = list.FieldAt(graphicId);
         reference.SetReferenceColor(newId, palette.Colors[newId]);
 
-        colorsRoot.FieldAt(oldId).ReferenceCount--;
+        var oldColorField = colorsRoot.FieldAt(oldId);
+        if (oldColorField != null) oldColorField.ReferenceCount--;
         colorsRoot.FieldAt(newId).ReferenceCount++;
     }
     
