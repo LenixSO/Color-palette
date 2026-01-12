@@ -7,6 +7,7 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using Button = UnityEngine.UIElements.Button;
 using PopupWindow = UnityEngine.UIElements.PopupWindow;
+using Task = System.Threading.Tasks.Task;
 
 [CustomEditor(typeof(ColorPalette))]
 public class PalletePropertyDrawer : Editor
@@ -103,8 +104,9 @@ public class PalletePropertyDrawer : Editor
         Popup.Add(window);
     }
     
-    private void ReadProjectElements()
+    private async void ReadProjectElements()
     {
+        colorsRoot.UnregisterCallback<CollectionChangeEvent<Color>>(OnColorsChanged);
         palette.Colors.Clear();
         palette.Graphics.Clear();
         palette.graphicsLookUp.Clear();
@@ -128,9 +130,14 @@ public class PalletePropertyDrawer : Editor
                     palette.Graphics.Add(graphics[i]);
                     Color color = graphics[i].color;
                     //add color if doesn't exist
-                    if (!palette.Colors.Contains(color)) palette.Colors.Add(color);
+                    int colorID = palette.Colors.IndexOf(color);
+                    if (colorID < 0)
+                    {
+                        colorID = palette.Colors.Count;
+                        palette.Colors.Add(color);
+                    }
                     //set a lookup inder to link object to color
-                    palette.graphicsLookUp.Add(palette.Colors.IndexOf(color));
+                    palette.graphicsLookUp.Add(colorID);
                 }
             }
 
@@ -152,6 +159,8 @@ public class PalletePropertyDrawer : Editor
         
         SetupColors();
         SetupReferences();
+        await Task.Delay(500);
+        colorsRoot.RegisterCallback<CollectionChangeEvent<Color>>(OnColorsChanged);
     }
 
     private void UpdatePrefabFolders(CollectionChangeEvent<Object> evt)
@@ -212,7 +221,7 @@ public class PalletePropertyDrawer : Editor
             //Graphic
             for (int i = 0; i < palette.Graphics.Count; i++)
             {
-        //fix gray area on very particular colors
+                //fix gray area on very particular colors
                 if (palette.graphicsLookUp[i] != id) continue;
                 palette.Graphics[i].color = newColor;
                 graphicList?.FieldAt(i)?.SetReferenceColor(id, newColor);
@@ -326,7 +335,7 @@ public class PalletePropertyDrawer : Editor
         colorsRoot.FieldAt(newId).ReferenceCount++;
     }
     
-    private void ApplyPaletteChanges()
+    private async void ApplyPaletteChanges()
     {
         for (int i = 0; i < palette.graphicsLookUp.Count; i++)
             ApplyElementColor(palette.Graphics[i]);
@@ -334,8 +343,10 @@ public class PalletePropertyDrawer : Editor
             ApplyElementColor(palette.Renderers[i]);
         
         AssetDatabase.Refresh();
+        await Task.Delay(1000);
         ReadProjectElements();
     }
+    
     private void ApplyElementColor(Graphic element)
     {
         string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(element);
